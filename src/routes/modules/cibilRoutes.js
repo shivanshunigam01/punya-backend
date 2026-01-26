@@ -1,0 +1,16 @@
+import { Router } from "express";
+import { rateLimiters } from "../../middleware/rateLimiters.js";
+import { requireAuth, requireRole } from "../../middleware/auth.js";
+import { createCibilPaymentOrder, verifyCibilPaymentAndCheck, listCibilChecks, cibilAnalytics } from "../../controllers/cibilController.js";
+
+const r = Router();
+
+// Public (payment + verification)
+r.post("/create-order", rateLimiters.cibil, createCibilPaymentOrder);
+r.post("/verify-and-check", rateLimiters.cibil, verifyCibilPaymentAndCheck);
+
+// Admin (list + analytics)
+r.get("/", requireAuth, requireRole(["admin","staff"]), listCibilChecks);
+r.get("/analytics", requireAuth, requireRole(["admin","staff"]), cibilAnalytics);
+
+export default r;
