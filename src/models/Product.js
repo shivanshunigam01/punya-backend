@@ -2,6 +2,19 @@ import mongoose from "mongoose";
 
 const CustomSpecSchema = new mongoose.Schema({ label: String, value: String }, { _id: false });
 
+const TcoItemSchema = new mongoose.Schema(
+{
+key: { type: String, required: true }, // fuel, insurance, service
+label: { type: String, required: true }, // Fuel Cost
+value: { type: Number, required: true }, // 12000
+unit: {
+type: String,
+enum: ["monthly", "yearly", "one-time"],
+required: true,
+},
+},
+{ _id: false }
+);
 const ProductSchema = new mongoose.Schema(
   {
     brand_id: { type: mongoose.Schema.Types.ObjectId, ref: "Brand", required: true, index: true },
@@ -18,6 +31,7 @@ const ProductSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
+    tco_items: { type: [TcoItemSchema], default: [] },
     key_features: { type: [String], default: [] },
     applications: { type: [String], default: [] },
     is_active: { type: Boolean, default: true, index: true },

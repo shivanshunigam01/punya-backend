@@ -18,9 +18,16 @@ import settingsRoutes from "./modules/settingsRoutes.js";
 import mediaRoutes from "./modules/mediaRoutes.js";
 import cibilRoutes from "./modules/cibilRoutes.js";
 import dashboardRoutes from "./modules/dashboardRoutes.js";
+import userRoutes from "../routes/userRoutes.js"
+import productMediaRoutes from "./modules/productMediaRoutes.js";
+
+
+
 
 const router = Router();
 
+router.use("/products", productMediaRoutes);
+router.use("/users", userRoutes);
 router.use("/auth", authRoutes);
 router.use("/dashboard", dashboardRoutes);
 

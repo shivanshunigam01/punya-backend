@@ -1,17 +1,52 @@
 import { Router } from "express";
-import { listProducts, getProductBySlug, createProduct, updateProduct, deleteProduct, compareProducts } from "../../controllers/productController.js";
+import {
+  listProducts,
+  getProductBySlug,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  compareProducts,
+} from "../../controllers/productController.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
+import { uploadProductMedia } from "../../middleware/upload.js";
+const router = Router();
 
-const r = Router();
+/* ========= PUBLIC ========= */
+router.get("/", listProducts);
+router.get("/compare", compareProducts);
+router.get("/slug/:slug", getProductBySlug);
 
-// Public
-r.get("/", listProducts);
-r.get("/compare", compareProducts);
-r.get("/:slug", getProductBySlug);
+/* ========= ADMIN ========= */
+router.get(
+  "/admin/:id",
+  requireAuth,
+  requireRole(["master_admin", "admin"]),
+  getProductById
+);
 
-// Admin
-r.post("/", requireAuth, requireRole(["admin"]), createProduct);
-r.put("/:id", requireAuth, requireRole(["admin"]), updateProduct);
-r.delete("/:id", requireAuth, requireRole(["admin"]), deleteProduct);
+router.post(
+"/",
+requireAuth,
+requireRole(["master_admin", "admin"]),
+uploadProductMedia,
+createProduct
+);
 
-export default r;
+
+router.put(
+"/:id",
+requireAuth,
+requireRole(["master_admin", "admin"]),
+uploadProductMedia,
+updateProduct
+);
+
+router.delete(
+  "/:id",
+  requireAuth,
+  requireRole(["master_admin", "admin"]),
+  deleteProduct
+);
+
+export default router;

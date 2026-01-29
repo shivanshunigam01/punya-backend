@@ -1,11 +1,8 @@
 import { Router } from "express";
-import { login, refresh, logout } from "../../controllers/authController.js";
-import { requireAuth } from "../../middleware/auth.js";
+import { login } from "../../controllers/authController.js";
 
-const r = Router();
+const router = Router();
 
-r.post("/login", login);
-r.post("/refresh", refresh);
-r.post("/logout", requireAuth, logout);
+router.post("/login", login);
 
-export default r;
+export default router;

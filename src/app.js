@@ -1,3 +1,4 @@
+// src/app.js
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -9,43 +10,55 @@ import hpp from "hpp";
 import { errorHandler, notFound } from "./middleware/error.js";
 import { rateLimiters } from "./middleware/rateLimiters.js";
 import { attachRequestMeta } from "./middleware/requestMeta.js";
-
 import routes from "./routes/index.js";
 
 const app = express();
 
-// Security headers
+/* ================= SECURITY ================= */
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(mongoSanitize());
 app.use(hpp());
 
-// Body parsing
-app.use(express.json({ limit: "2mb" }));
+/* ================= BODY PARSING (FIXED) ================= */
+app.use((req, res, next) => {
+  const contentType = req.headers["content-type"] || "";
+  if (contentType.includes("multipart/form-data")) {
+    return next(); // ❗ DO NOT JSON PARSE MULTIPART
+  }
+  express.json({ limit: "2mb" })(req, res, next);
+});
+
 app.use(express.urlencoded({ extended: true }));
 
-// Compression
+/* ================= PERFORMANCE ================= */
 app.use(compression());
 
-// CORS
-const origin = process.env.CORS_ORIGIN?.split(",").map(s => s.trim()).filter(Boolean) || "*";
+/* ================= CORS ================= */
+const origin =
+  process.env.CORS_ORIGIN?.split(",").map(s => s.trim()).filter(Boolean) || "*";
 app.use(cors({ origin, credentials: true }));
 
-// Logging
+/* ================= LOGGING ================= */
 app.use(morgan("dev"));
 
-// Request meta (ip/userAgent/referrer)
+/* ================= META + LIMIT ================= */
 app.use(attachRequestMeta);
-
-// Public rate limiting
 app.use(rateLimiters.general);
 
-// Health
-app.get("/", (req, res) => res.json({ status: "ok", service: "Patliputra Showroom API", timestamp: new Date().toISOString() }));
+/* ================= HEALTH ================= */
+app.get("/", (req, res) =>
+  res.json({
+    status: "ok",
+    service: "Patliputra Showroom API",
+    timestamp: new Date().toISOString(),
+  })
+);
 
-// API v1
-app.use("/v1", routes);
+/* ================= ROUTES ================= */
+app.use("/", routes);
+app.use("/uploads", express.static("uploads"));
 
-// 404 + error handling
+/* ================= ERRORS ================= */
 app.use(notFound);
 app.use(errorHandler);
 
