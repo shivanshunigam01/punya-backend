@@ -34,9 +34,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 
 /* ================= CORS ================= */
-const origin =
-  process.env.CORS_ORIGIN?.split(",").map(s => s.trim()).filter(Boolean) || "*";
-app.use(cors({ origin, credentials: true }));
+app.use(
+  cors({
+    origin: true,   // reflect request origin (allows all)
+    credentials: true,
+  })
+);
 
 /* ================= LOGGING ================= */
 app.use(morgan("dev"));
