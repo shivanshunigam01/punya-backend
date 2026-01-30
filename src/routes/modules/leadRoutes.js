@@ -9,12 +9,12 @@ const r = Router();
 r.post("/", rateLimiters.leads, createLead);
 
 // Admin
-r.get("/", requireAuth, requireRole(["admin","staff"]), listLeads);
-r.get("/dashboard", requireAuth, requireRole(["admin","staff"]), leadDashboard);
-r.get("/:id", requireAuth, requireRole(["admin","staff"]), getLead);
-r.put("/:id", requireAuth, requireRole(["admin","staff"]), updateLead);
-r.patch("/:id/status", requireAuth, requireRole(["admin","staff"]), patchLeadStatus);
-r.patch("/:id/assign", requireAuth, requireRole(["admin"]), assignLead);
-r.post("/:id/notes", requireAuth, requireRole(["admin","staff"]), addLeadNote);
+r.get("/", requireAuth, requireRole(["master_admin","staff"]), listLeads);
+r.get("/dashboard", requireAuth, requireRole(["master_admin","staff"]), leadDashboard);
+r.get("/:id", requireAuth, requireRole(["master_admin","staff"]), getLead);
+r.put("/:id", requireAuth, requireRole(["master_admin","staff"]), updateLead);
+r.patch("/:id/status", requireAuth, requireRole(["master_admin","staff"]), patchLeadStatus);
+r.patch("/:id/assign", requireAuth, requireRole(["master_admin"]), assignLead);
+r.post("/:id/notes", requireAuth, requireRole(["master_admin","staff"]), addLeadNote);
 
 export default r;

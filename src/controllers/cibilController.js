@@ -161,7 +161,25 @@ export const listCibilChecks = asyncHandler(async (req, res) => {
     CibilCheck.countDocuments(q),
   ]);
 
-  return ok(res, items, { total, page, per_page });
+  const mapped = items.map(c => ({
+  id: c._id.toString(),
+
+  customerName: c.customer_name,
+  mobile: c.mobile,
+
+  panNumber: c.pan_masked,        // already masked
+  dateOfBirth: c.dob,
+
+  score: c.cibil_score ?? 0,
+  scoreBand: c.score_band
+    ? c.score_band.charAt(0).toUpperCase() + c.score_band.slice(1)
+    : "Unknown",
+
+  checkedAt: c.checked_at,
+}));
+
+return ok(res, mapped, { total, page, per_page });
+
 });
 
 export const cibilAnalytics = asyncHandler(async (_req, res) => {

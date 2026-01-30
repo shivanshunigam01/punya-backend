@@ -20,6 +20,7 @@ import cibilRoutes from "./modules/cibilRoutes.js";
 import dashboardRoutes from "./modules/dashboardRoutes.js";
 import userRoutes from "../routes/userRoutes.js"
 import productMediaRoutes from "./modules/productMediaRoutes.js";
+import dealerRoutes from "../routes/dealerRoutes.js"
 
 
 
@@ -27,6 +28,7 @@ import productMediaRoutes from "./modules/productMediaRoutes.js";
 const router = Router();
 
 router.use("/products", productMediaRoutes);
+router.use("/dealers", dealerRoutes);
 router.use("/users", userRoutes);
 router.use("/auth", authRoutes);
 router.use("/dashboard", dashboardRoutes);

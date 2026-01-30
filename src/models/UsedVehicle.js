@@ -14,7 +14,7 @@ const ConditionReportSchema = new mongoose.Schema(
 
 const UsedVehicleSchema = new mongoose.Schema(
   {
-    vehicle_type: { type: String, enum: ["tipper", "bus", "loader", "jcb", "pickup", "lcv", "trailer", "other"], required: true, index: true },
+    vehicle_type: { type: String, enum: ["tipper", "bus", "loader", "jcb", "pickup", "lcv", "trailer", "other"], required: false, index: true },
     brand: String,
     model: { type: String, required: true },
     year: { type: Number, required: true },

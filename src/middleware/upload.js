@@ -35,4 +35,5 @@ export const uploadProductMedia = multer({
 }).fields([
   { name: "images", maxCount: 10 },
   { name: "brochure", maxCount: 1 },
+   { name: "inspectionReport", maxCount: 1 },
 ]);

@@ -3,6 +3,8 @@ import { UsedVehicle } from "../models/UsedVehicle.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ok, created, fail } from "../utils/apiResponse.js";
 import { parsePagination } from "../utils/pagination.js";
+import cloudinary from "../config/cloudinary.js";
+import fs from "fs";
 
 const schema = Joi.object({
   vehicle_type: Joi.string().valid("tipper","bus","loader","jcb","pickup","lcv","trailer","other").required(),
@@ -14,8 +16,8 @@ const schema = Joi.object({
   price: Joi.number().min(0).required(),
   price_display: Joi.string().allow("", null),
   emi_estimate: Joi.number().min(0).allow(null),
-  featured_image: Joi.string().uri().allow("", null),
-  gallery_images: Joi.array().items(Joi.string().uri()).default([]),
+  // featured_image: Joi.string().uri().allow("", null),
+  // gallery_images: Joi.array().items(Joi.string().uri()).default([]),
   fuel_type: Joi.string().allow("", null),
   ownership: Joi.string().allow("", null),
   insurance_valid_till: Joi.date().iso().allow(null),
@@ -30,7 +32,7 @@ const schema = Joi.object({
     notes: Joi.string().allow("", null).optional(),
   }).default({}),
   is_certified: Joi.boolean().default(false),
-  inspection_report_url: Joi.string().uri().allow("", null),
+  // inspection_report_url: Joi.string().uri().allow("", null),
   has_warranty: Joi.boolean().default(false),
   warranty_details: Joi.string().allow("", null),
   has_return_policy: Joi.boolean().default(false),
@@ -43,6 +45,9 @@ const schema = Joi.object({
   seller_phone: Joi.string().allow("", null),
   listed_at: Joi.date().iso().allow(null),
   sold_at: Joi.date().iso().allow(null),
+featured_image: Joi.string().uri().allow("", null),
+gallery_images: Joi.array().items(Joi.string().uri()).default([]),
+inspection_report_url: Joi.string().uri().allow("", null),
 });
 
 export const listUsedVehicles = asyncHandler(async (req, res) => {
@@ -90,19 +95,131 @@ export const getUsedVehicle = asyncHandler(async (req, res) => {
   if (!item) return fail(res, "NOT_FOUND", "Used vehicle not found", null, 404);
   return ok(res, item);
 });
-
 export const createUsedVehicle = asyncHandler(async (req, res) => {
-  const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
+  const images = req.files?.images || [];
+  const inspection = req.files?.inspectionReport?.[0] || null;
+
+  // ✅ Upload images to Cloudinary
+  const galleryImages = [];
+
+  for (const file of images) {
+    const result = await cloudinary.uploader.upload(file.path, {
+      folder: "used-vehicles",
+    });
+
+    galleryImages.push(result.secure_url);
+    fs.unlinkSync(file.path);
+  }
+
+  // ✅ Upload inspection PDF
+  let inspectionReportUrl = null;
+
+  if (inspection) {
+    const result = await cloudinary.uploader.upload(inspection.path, {
+      folder: "used-vehicles/inspection-reports",
+      resource_type: "raw", // 🔥 IMPORTANT FOR PDF
+    });
+
+    inspectionReportUrl = result.secure_url;
+    fs.unlinkSync(inspection.path);
+  }
+
+  // ✅ Parse condition_report safely
+  let conditionReport = {};
+  if (req.body.condition_report) {
+    try {
+      conditionReport =
+        typeof req.body.condition_report === "string"
+          ? JSON.parse(req.body.condition_report)
+          : req.body.condition_report;
+    } catch {
+      conditionReport = {};
+    }
+  }
+
+  // ✅ Build payload
+  const payload = {
+    ...req.body,
+    gallery_images: galleryImages,
+    featured_image: galleryImages[0] || null,
+    inspection_report_url: inspectionReportUrl,
+    condition_report: conditionReport,
+  };
+
+  const { error, value } = schema.validate(payload, {
+    abortEarly: false,
+    stripUnknown: true,
+  });
+
   if (error) throw error;
+
   const item = await UsedVehicle.create(value);
   return created(res, item);
 });
 
 export const updateUsedVehicle = asyncHandler(async (req, res) => {
-  const { error, value } = schema.min(1).validate(req.body, { abortEarly: false, stripUnknown: true });
+  const body = { ...req.body };
+
+  // ✅ Parse condition_report safely
+  if (body.condition_report) {
+    try {
+      body.condition_report =
+        typeof body.condition_report === "string"
+          ? JSON.parse(body.condition_report)
+          : body.condition_report;
+    } catch {
+      body.condition_report = {};
+    }
+  }
+
+  const images = req.files?.images || [];
+  const inspection = req.files?.inspectionReport?.[0] || null;
+
+  // ✅ Upload images to Cloudinary
+  if (images.length) {
+    const galleryImages = [];
+
+    for (const file of images) {
+      const result = await cloudinary.uploader.upload(file.path, {
+        folder: "used-vehicles",
+      });
+
+      galleryImages.push(result.secure_url);
+      fs.unlinkSync(file.path);
+    }
+
+    body.gallery_images = galleryImages;
+    body.featured_image = galleryImages[0];
+  }
+
+  // ✅ Upload inspection PDF
+  if (inspection) {
+    const result = await cloudinary.uploader.upload(inspection.path, {
+      folder: "used-vehicles/inspection-reports",
+      resource_type: "raw", // 🔥 REQUIRED for PDF
+    });
+
+    body.inspection_report_url = result.secure_url;
+    fs.unlinkSync(inspection.path);
+  }
+
+  const { error, value } = schema.validate(body, {
+    abortEarly: false,
+    stripUnknown: true,
+  });
+
   if (error) throw error;
-  const item = await UsedVehicle.findByIdAndUpdate(req.params.id, value, { new: true });
-  if (!item) return fail(res, "NOT_FOUND", "Used vehicle not found", null, 404);
+
+  const item = await UsedVehicle.findByIdAndUpdate(
+    req.params.id,
+    value,
+    { new: true }
+  );
+
+  if (!item) {
+    return fail(res, "NOT_FOUND", "Used vehicle not found", null, 404);
+  }
+
   return ok(res, item);
 });
 

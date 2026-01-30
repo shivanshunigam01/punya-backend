@@ -67,39 +67,78 @@ export const listLeads = asyncHandler(async (req, res) => {
 
   if (date_from || date_to) {
     q.created_at = {};
-    if (date_from) q.created_at.$gte = new Date(String(date_from));
-    if (date_to) q.created_at.$lte = new Date(String(date_to));
+    if (date_from) q.created_at.$gte = new Date(date_from);
+    if (date_to) q.created_at.$lte = new Date(date_to);
   }
 
   if (search) {
     q.$or = [
-      { customer_name: { $regex: String(search), $options: "i" } },
-      { customer_mobile: { $regex: String(search), $options: "i" } },
-      { lead_number: { $regex: String(search), $options: "i" } },
+      { customer_name: { $regex: search, $options: "i" } },
+      { customer_mobile: { $regex: search, $options: "i" } },
+      { lead_number: { $regex: search, $options: "i" } },
     ];
   }
 
-  let sort = { created_at: -1 };
-  if (sort_by === "oldest") sort = { created_at: 1 };
-  if (sort_by === "priority") sort = { priority: 1, created_at: -1 };
+  const items = await Lead.find(q).sort({ created_at: -1 });
 
-  const { page, per_page, skip, limit } = parsePagination(req.query);
-  const [items, total, todayNew, pending_followup, unassigned] = await Promise.all([
-    Lead.find(q).sort(sort).skip(skip).limit(limit),
-    Lead.countDocuments(q),
-    Lead.countDocuments({ created_at: { $gte: new Date(new Date().setHours(0,0,0,0)) } }),
-    Lead.countDocuments({ status: "follow_up" }),
-    Lead.countDocuments({ assigned_to: null }),
-  ]);
+  // ✅ MAP FOR FRONTEND
+const mapped = items.map(l => ({
+  id: l._id.toString(),
 
-  return ok(res, items, { total, page, per_page, new_today: todayNew, pending_followup, unassigned });
+  customerName: l.customer_name,
+  mobile: l.customer_mobile,
+  email: l.customer_email,
+
+  productName: l.product_interest,
+  brand: l.brand_interest,
+
+  source: l.source,
+  status: l.status,
+
+  notes: l.notes.map(n => n.note),
+
+  utmSource: l.utm_source,
+  utmMedium: l.utm_medium,
+  utmCampaign: l.utm_campaign,
+
+  createdAt: l.created_at,
+  updatedAt: l.updated_at,
+}));
+
+return ok(res, mapped, {
+  total: mapped.length,
 });
+});
+
 
 export const getLead = asyncHandler(async (req, res) => {
-  const item = await Lead.findById(req.params.id);
-  if (!item) return fail(res, "NOT_FOUND", "Lead not found", null, 404);
-  return ok(res, item);
+  const l = await Lead.findById(req.params.id).populate("assigned_to", "name");
+  if (!l) return fail(res, "NOT_FOUND", "Lead not found", null, 404);
+
+  return ok(res, {
+    id: l._id,
+    leadNumber: l.lead_number,
+
+    customerName: l.customer_name,
+    mobile: l.customer_mobile,
+    email: l.customer_email,
+
+    brand: l.brand_interest,
+    productName: l.product_interest,
+
+    source: l.source,
+    status: l.status,
+
+    createdAt: l.created_at,
+
+    notes: l.notes.map(n => n.note),
+
+    utmSource: l.utm_source,
+    utmMedium: l.utm_medium,
+    utmCampaign: l.utm_campaign,
+  });
 });
+
 
 export const updateLead = asyncHandler(async (req, res) => {
   const schema = createSchema.min(1);
@@ -142,12 +181,34 @@ export const assignLead = asyncHandler(async (req, res) => {
   lead.assigned_at = new Date();
   await lead.save();
 
-  return ok(res, lead);
+ return ok(res, {
+  id: lead._id.toString(),
+
+  customerName: lead.customer_name,
+  mobile: lead.customer_mobile,
+  email: lead.customer_email,
+
+  productName: lead.product_interest,
+  brand: lead.brand_interest,
+
+  source: lead.source,
+  status: lead.status,
+
+  notes: lead.notes.map(n => n.note),
+
+  utmSource: lead.utm_source,
+  utmMedium: lead.utm_medium,
+  utmCampaign: lead.utm_campaign,
+
+  createdAt: lead.created_at,
+  updatedAt: lead.updated_at,
 });
+
+});               
 
 export const addLeadNote = asyncHandler(async (req, res) => {
   const schema = Joi.object({ note: Joi.string().required() });
-  const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
+  const { error, value } = schema.validate(req.body);
   if (error) throw error;
 
   const lead = await Lead.findById(req.params.id);
@@ -155,8 +216,13 @@ export const addLeadNote = asyncHandler(async (req, res) => {
 
   lead.notes.push({ note: value.note, created_by: req.user.id });
   await lead.save();
-  return ok(res, lead);
+
+  return ok(res, {
+    id: lead._id,
+    notes: lead.notes.map(n => n.note),
+  });
 });
+
 
 export const leadDashboard = asyncHandler(async (_req, res) => {
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);

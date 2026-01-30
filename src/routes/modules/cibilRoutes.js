@@ -10,7 +10,7 @@ r.post("/create-order", rateLimiters.cibil, createCibilPaymentOrder);
 r.post("/verify-and-check", rateLimiters.cibil, verifyCibilPaymentAndCheck);
 
 // Admin (list + analytics)
-r.get("/", requireAuth, requireRole(["admin","staff"]), listCibilChecks);
-r.get("/analytics", requireAuth, requireRole(["admin","staff"]), cibilAnalytics);
+r.get("/", requireAuth, requireRole(["master_admin","staff"]), listCibilChecks);
+r.get("/analytics", requireAuth, requireRole(["master_admin","staff"]), cibilAnalytics);
 
 export default r;

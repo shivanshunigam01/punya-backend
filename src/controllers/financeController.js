@@ -18,6 +18,7 @@ const applySchema = Joi.object({
   applicant_district: Joi.string().required(),
   linked_lead_id: Joi.string().allow("", null),
   linked_product_id: Joi.string().allow("", null),
+  applicant_email: Joi.string().email().allow("", null),
 });
 
 export const applyFinance = asyncHandler(async (req, res) => {
@@ -42,18 +43,77 @@ export const listFinanceApplications = asyncHandler(async (req, res) => {
   if (req.query.status) q.status = req.query.status;
 
   const { page, per_page, skip, limit } = parsePagination(req.query);
+
   const [items, total] = await Promise.all([
-    FinanceApplication.find(q).sort({ submitted_at: -1 }).skip(skip).limit(limit),
+    FinanceApplication.find(q)
+      .populate("linked_product_id", "name")
+      .sort({ submitted_at: -1 })
+      .skip(skip)
+      .limit(limit),
     FinanceApplication.countDocuments(q),
   ]);
-  return ok(res, items, { total, page, per_page });
+
+  const mapped = items.map(a => ({
+    id: a._id.toString(),
+    applicationNumber: a.application_number,
+
+    customerName: a.applicant_name,
+    mobile: a.applicant_mobile,
+    district: a.applicant_district,
+
+    productId: a.linked_product_id?._id,
+    productName: a.linked_product_id?.name || null,
+
+    loanAmount: a.approximate_budget,
+    tenure: null, // optional – add later if EMI module comes
+
+    status: a.status,
+
+    documents: (a.documents_list || []).map(d => ({
+      type: d,
+      url: `/uploads/docs/${d}`,
+      uploadedAt: a.created_at,
+    })),
+
+    createdAt: a.created_at,
+    updatedAt: a.updated_at,
+  }));
+
+  return ok(res, mapped, { total, page, per_page });
 });
 
+
 export const getFinanceApplication = asyncHandler(async (req, res) => {
-  const item = await FinanceApplication.findById(req.params.id);
-  if (!item) return fail(res, "NOT_FOUND", "Finance application not found", null, 404);
-  return ok(res, item);
+  const a = await FinanceApplication.findById(req.params.id)
+    .populate("linked_product_id", "name");
+
+  if (!a) return fail(res, "NOT_FOUND", "Finance application not found", null, 404);
+
+  return ok(res, {
+    id: a._id.toString(),
+    applicationNumber: a.application_number,
+
+    customerName: a.applicant_name,
+    mobile: a.applicant_mobile,
+    district: a.applicant_district,
+
+    productId: a.linked_product_id?._id,
+    productName: a.linked_product_id?.name || null,
+
+    loanAmount: a.approximate_budget,
+    status: a.status,
+
+    documents: (a.documents_list || []).map(d => ({
+      type: d,
+      url: `/uploads/docs/${d}`,
+      uploadedAt: a.created_at,
+    })),
+
+    createdAt: a.created_at,
+    updatedAt: a.updated_at,
+  });
 });
+
 
 export const patchFinanceStatus = asyncHandler(async (req, res) => {
   const schema = Joi.object({ status: Joi.string().valid("pending","under_review","approved","rejected","disbursed").required(), internal_notes: Joi.string().allow("", null) });

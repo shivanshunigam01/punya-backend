@@ -59,12 +59,12 @@ const upload = multer({
 });
 
 /**
- * Routes (Admin / Staff only)
+ * Routes (master_Admin / Staff only)
  */
 r.post(
   "/upload",
   requireAuth,
-  requireRole(["admin", "staff"]),
+  requireRole(["master_admin", "staff"]),
   upload.single("file"),
   uploadSingle
 );
@@ -72,13 +72,13 @@ r.post(
 r.post(
   "/upload-multiple",
   requireAuth,
-  requireRole(["admin", "staff"]),
+  requireRole(["master_admin", "staff"]),
   upload.array("files", 10),
   uploadMultiple
 );
 
-r.get("/", requireAuth, requireRole(["admin", "staff"]), listMedia);
+r.get("/", requireAuth, requireRole(["master_admin", "staff"]), listMedia);
 
-r.delete("/:id", requireAuth, requireRole(["admin", "staff"]), deleteMedia);
+r.delete("/:id", requireAuth, requireRole(["master_admin", "staff"]), deleteMedia);
 
 export default r;

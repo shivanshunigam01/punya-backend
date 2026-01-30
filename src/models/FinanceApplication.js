@@ -19,6 +19,7 @@ const FinanceApplicationSchema = new mongoose.Schema(
     approved_at: Date,
     linked_lead_id: { type: mongoose.Schema.Types.ObjectId, ref: "Lead" },
     linked_product_id: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+    applicant_email: { type: String },
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );

@@ -8,8 +8,8 @@ const r = Router();
 r.post("/apply", applyFinance);
 
 // Admin
-r.get("/applications", requireAuth, requireRole(["admin","staff"]), listFinanceApplications);
-r.get("/applications/:id", requireAuth, requireRole(["admin","staff"]), getFinanceApplication);
-r.patch("/applications/:id/status", requireAuth, requireRole(["admin","staff"]), patchFinanceStatus);
+r.get("/applications", requireAuth, requireRole(["master_admin","staff"]), listFinanceApplications);
+r.get("/applications/:id", requireAuth, requireRole(["master_admin","staff"]), getFinanceApplication);
+r.patch("/applications/:id/status", requireAuth, requireRole(["master_admin","staff"]), patchFinanceStatus);
 
 export default r;

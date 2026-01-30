@@ -191,7 +191,7 @@ import fs from "fs";
 import path from "path";
 
 export const createProduct = asyncHandler(async (req, res) => {
-  console.log("FILES:", Object.keys(req.files || {}));
+console.log("FILES FULL:", req.files);
   const normalizedBody = normalizeMultipartBody(req.body);
 
   const { error, value } = productSchema.validate(normalizedBody, {
@@ -232,7 +232,7 @@ export const createProduct = asyncHandler(async (req, res) => {
     );
 
     fs.renameSync(file.path, targetPath);
-    brochureUrl = `/${targetPath}`;
+   brochureUrl = "/" + targetPath.replace(/\\/g, "/");
   }
 
   const product = await Product.create({
@@ -307,9 +307,18 @@ export const updateProduct = asyncHandler(async (req, res) => {
     update.gallery_images = req.files.images.map((f) => f.path);
   }
 
-  if (req.files?.brochure?.[0]) {
-    update.brochure_url = `/uploads/brochures/${req.files.brochure[0].filename}`;
-  }
+if (req.files?.brochure?.[0]) {
+  const file = req.files.brochure[0];
+
+  const targetPath = path.join(
+    "uploads/brochures",
+    path.basename(file.path)
+  );
+
+  fs.renameSync(file.path, targetPath);
+
+update.brochure_url = "/" + targetPath.replace(/\\/g, "/");
+}
 
   const product = await Product.findByIdAndUpdate(req.params.id, update, {
     new: true,

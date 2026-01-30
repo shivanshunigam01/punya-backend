@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ok, created, fail } from "../utils/apiResponse.js";
 import { MediaFile } from "../models/MediaFile.js";
 import { parsePagination } from "../utils/pagination.js";
+import mongoose from "mongoose";
 
 export const uploadSingle = asyncHandler(async (req, res) => {
   if (!req.file) return fail(res, "VALIDATION_ERROR", "file is required", null, 400);
@@ -57,12 +58,35 @@ export const listMedia = asyncHandler(async (req, res) => {
     MediaFile.countDocuments(q),
   ]);
 
-  return ok(res, items, { total, page, per_page });
+return ok(
+  res,
+  items.map(m => ({
+    id: m._id.toString(),   // ✅ CRITICAL FIX
+    url: m.url,
+    thumbnail_url: m.thumbnail_url,
+    filename: m.filename,
+    original_filename: m.original_filename,
+    folder: m.folder,
+    size: m.size,
+    mime_type: m.mime_type,
+    createdAt: m.created_at,
+  })),
+  { total, page, per_page }
+);
+
 });
 
 export const deleteMedia = asyncHandler(async (req, res) => {
-  const item = await MediaFile.findByIdAndDelete(req.params.id);
-  if (!item) return fail(res, "NOT_FOUND", "Media not found", null, 404);
-  // Optional: delete from Cloudinary via public_id (not stored here)
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return fail(res, "VALIDATION_ERROR", "Invalid media id", null, 400);
+  }
+
+  const item = await MediaFile.findByIdAndDelete(id);
+  if (!item) {
+    return fail(res, "NOT_FOUND", "Media not found", null, 404);
+  }
+
   return ok(res, { message: "Deleted" });
 });

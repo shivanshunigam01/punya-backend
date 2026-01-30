@@ -42,6 +42,7 @@ const ProductSchema = new mongoose.Schema(
     seo_title: String,
     seo_description: String,
     seo_keywords: { type: [String], default: [] },
+    brochure_url: { type: String },
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
