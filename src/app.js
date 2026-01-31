@@ -36,11 +36,17 @@ app.use(compression());
 /* ================= CORS ================= */
 app.use(
   cors({
-    origin: true,   // reflect request origin (allows all)
+    origin: [
+      "https://patliputragroup.co.in",
+      "https://cpanel.patliputragroup.com",
+      "http://localhost:8080",
+      "http://localhost:8081"
+
+
+    ],
     credentials: true,
   })
 );
-
 /* ================= LOGGING ================= */
 app.use(morgan("dev"));
 
