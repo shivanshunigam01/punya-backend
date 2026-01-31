@@ -12,9 +12,9 @@ const PORT = process.env.PORT; // ❗ DO NOT FALLBACK IN HOSTINGER
 
 async function startServer() {
   try {
-    // initCloudinary(); // safe here
+    initCloudinary(); // safe here
 
-    // await connectDB(); // inside async fn
+    await connectDB(); // inside async fn
 
     const server = http.createServer(app);
 
