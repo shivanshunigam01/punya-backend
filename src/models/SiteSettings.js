@@ -6,7 +6,7 @@ const SiteSettingsSchema = new mongoose.Schema(
     whatsapp_number: String,
     email: String,
     address: String,
-    working_hours: { type: Object, default: {} },
+    working_hours: { type: String },
     social_links: { type: Object, default: {} },
     default_seo_title: String,
     default_seo_description: String,

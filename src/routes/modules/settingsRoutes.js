@@ -8,7 +8,7 @@ const r = Router();
 r.get("/", getPublicSettings);
 
 // Admin
-r.get("/admin", requireAuth, requireRole(["admin"]), getAdminSettings);
-r.put("/", requireAuth, requireRole(["admin"]), updateSettings);
+r.get("/admin", requireAuth, requireRole(["master_admin"]), getAdminSettings);
+r.put("/", requireAuth, requireRole(["master_admin"]), updateSettings);
 
 export default r;

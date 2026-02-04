@@ -8,8 +8,8 @@ const r = Router();
 r.get("/", listNewArrivals);
 
 // Admin
-r.post("/", requireAuth, requireRole(["admin"]), addNewArrival);
-r.put("/:id", requireAuth, requireRole(["admin"]), updateNewArrival);
-r.delete("/:id", requireAuth, requireRole(["admin"]), deleteNewArrival);
+r.post("/", requireAuth, requireRole(["master_admin"]), addNewArrival);
+r.put("/:id", requireAuth, requireRole(["master_admin"]), updateNewArrival);
+r.delete("/:id", requireAuth, requireRole(["master_admin"]), deleteNewArrival);
 
 export default r;

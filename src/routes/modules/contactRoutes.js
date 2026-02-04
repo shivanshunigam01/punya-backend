@@ -9,7 +9,7 @@ const r = Router();
 r.post("/", rateLimiters.contact, createContact);
 
 // Admin
-r.get("/", requireAuth, requireRole(["admin","staff"]), listContacts);
-r.patch("/:id/status", requireAuth, requireRole(["admin","staff"]), patchContactStatus);
+r.get("/", requireAuth, requireRole(["master_admin","staff"]), listContacts);
+r.patch("/:id/status", requireAuth, requireRole(["master_admin","staff"]), patchContactStatus);
 
 export default r;

@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -9,7 +8,6 @@ const userSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
 
     email: {
       type: String,
@@ -19,13 +17,11 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
-
     mobile: {
       type: String,
       required: true,
       trim: true,
     },
-
 
     password: {
       type: String,
@@ -33,19 +29,32 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
-
+    // ✅ FIXED ROLES (matches frontend)
     role: {
       type: String,
       enum: ["master_admin", "admin", "sales_user", "custom"],
       default: "sales_user",
     },
+    roleLabel: {
+  type: String,
+  trim: true,
+},
 
+    // ✅ REQUIRED FOR RBAC
+    permissions: {
+      type: Object,
+      default: {},
+    },
 
     isActive: {
       type: Boolean,
       default: true,
     },
 
+    // ✅ Used in UI
+    lastLogin: {
+      type: Date,
+    },
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -55,19 +64,16 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-
-// Hash password
+/* ================= PASSWORD HASH ================= */
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-
-// Compare password
+/* ================= PASSWORD COMPARE ================= */
 userSchema.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.password);
 };
-
 
 export default mongoose.model("User", userSchema);

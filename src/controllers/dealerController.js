@@ -31,15 +31,24 @@ export const createDealer = asyncHandler(async (req, res) => {
  * PUT /dealers/:id
  */
 export const updateDealer = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return fail(res, "INVALID_ID", "Invalid dealer ID", null, 400);
+  }
+
   const dealer = await Dealer.findByIdAndUpdate(
-    req.params.id,
+    id,
     req.body,
-    { new: true }
+    { new: true, runValidators: true }
   );
-  if (!dealer) return fail(res, "NOT_FOUND", "Dealer not found", null, 404);
+
+  if (!dealer) {
+    return fail(res, "NOT_FOUND", "Dealer not found", null, 404);
+  }
+
   return ok(res, dealer);
 });
-
 /**
  * DELETE /dealers/:id
  */

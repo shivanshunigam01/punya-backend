@@ -47,4 +47,4 @@ const ProductSchema = new mongoose.Schema(
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
 
-export const Product = mongoose.model("Product", ProductSchema);
+export default mongoose.model("Product", ProductSchema);

@@ -9,8 +9,8 @@ r.get("/", listCategories);
 r.get("/:id", getCategoryWithProducts);
 
 // Admin
-r.post("/", requireAuth, requireRole(["admin"]), createCategory);
-r.put("/:id", requireAuth, requireRole(["admin"]), updateCategory);
-r.delete("/:id", requireAuth, requireRole(["admin"]), deleteCategory);
+r.post("/", requireAuth, requireRole(["master_admin"]), createCategory);
+r.put("/:id", requireAuth, requireRole(["master_admin"]), updateCategory);
+r.delete("/:id", requireAuth, requireRole(["master_admin"]), deleteCategory);
 
 export default r;

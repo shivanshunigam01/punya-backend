@@ -8,8 +8,8 @@ const r = Router();
 r.get("/", listTrustPillars);
 
 // Admin
-r.post("/", requireAuth, requireRole(["admin"]), createTrustPillar);
-r.put("/:id", requireAuth, requireRole(["admin"]), updateTrustPillar);
-r.delete("/:id", requireAuth, requireRole(["admin"]), deleteTrustPillar);
+r.post("/", requireAuth, requireRole(["master_admin"]), createTrustPillar);
+r.put("/:id", requireAuth, requireRole(["master_admin"]), updateTrustPillar);
+r.delete("/:id", requireAuth, requireRole(["master_admin"]), deleteTrustPillar);
 
 export default r;

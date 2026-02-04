@@ -1,5 +1,5 @@
 import Joi from "joi";
-import { Product } from "../models/Product.js";
+import Product from "../models/Product.js";
 import { Brand } from "../models/Brand.js";
 import { Category } from "../models/Category.js";
 import { asyncHandler } from "../utils/asyncHandler.js";

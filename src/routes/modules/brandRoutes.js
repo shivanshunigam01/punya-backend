@@ -9,8 +9,8 @@ r.get("/", listBrands);
 r.get("/:slug", getBrandBySlug);
 
 // Admin
-r.post("/", requireAuth, requireRole(["admin"]), createBrand);
-r.put("/:id", requireAuth, requireRole(["admin"]), updateBrand);
-r.delete("/:id", requireAuth, requireRole(["admin"]), deleteBrand);
+r.post("/", requireAuth, requireRole(["master_admin"]), createBrand);
+r.put("/:id", requireAuth, requireRole(["master_admin"]), updateBrand);
+r.delete("/:id", requireAuth, requireRole(["master_admin"]), deleteBrand);
 
 export default r;

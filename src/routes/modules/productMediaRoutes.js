@@ -4,7 +4,7 @@ import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import cloudinary from "../../config/cloudinary.js"; // ✅ INSTANCE ONLY
 import { requireAuth, requireRole } from "../../middleware/auth.js";
-import { Product } from "../../models/Product.js";
+import  Product  from "../../models/Product.js";
 import { ok, fail } from "../../utils/apiResponse.js";
 
 const router = Router();
@@ -26,7 +26,7 @@ const uploadImages = multer({ storage: imageStorage });
 router.post(
   "/:id/images",
   requireAuth,
-  requireRole(["master_admin", "admin"]),
+  requireRole(["master_admin", "master_admin"]),
   uploadImages.array("images", 10),
   async (req, res) => {
     const product = await Product.findById(req.params.id);
@@ -58,7 +58,7 @@ const uploadBrochure = multer({ storage: brochureStorage });
 router.post(
   "/:id/brochure",
   requireAuth,
-  requireRole(["master_admin", "admin"]),
+  requireRole(["master_admin", "master_admin"]),
   uploadBrochure.single("brochure"),
   async (req, res) => {
     const product = await Product.findById(req.params.id);

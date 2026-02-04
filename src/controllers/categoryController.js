@@ -1,6 +1,6 @@
 import Joi from "joi";
 import { Category } from "../models/Category.js";
-import { Product } from "../models/Product.js";
+import Product from "../models/Product.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ok, created, fail } from "../utils/apiResponse.js";
 import { makeSlug } from "../utils/slug.js";

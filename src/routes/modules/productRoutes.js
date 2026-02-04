@@ -21,14 +21,14 @@ router.get("/slug/:slug", getProductBySlug);
 router.get(
   "/admin/:id",
   requireAuth,
-  requireRole(["master_admin", "admin"]),
+  requireRole(["master_admin", "master_admin"]),
   getProductById
 );
 
 router.post(
 "/",
 requireAuth,
-requireRole(["master_admin", "admin"]),
+requireRole(["master_admin", "master_admin"]),
 uploadProductMedia,
 createProduct
 );
@@ -37,7 +37,7 @@ createProduct
 router.put(
 "/:id",
 requireAuth,
-requireRole(["master_admin", "admin"]),
+requireRole(["master_admin", "master_admin"]),
 uploadProductMedia,
 updateProduct
 );
@@ -45,7 +45,7 @@ updateProduct
 router.delete(
   "/:id",
   requireAuth,
-  requireRole(["master_admin", "admin"]),
+  requireRole(["master_admin", "master_admin"]),
   deleteProduct
 );
 

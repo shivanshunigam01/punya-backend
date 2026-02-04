@@ -19,10 +19,10 @@ router.use(requireAuth);
 /**
  * ADMIN / MASTER ADMIN ONLY
  */
-router.get("/", requireRole(["master_admin", "admin"]), listDealers);
-router.get("/:id", requireRole(["master_admin", "admin"]), getDealer);
-router.post("/", requireRole(["master_admin", "admin"]), createDealer);
-router.put("/:id", requireRole(["master_admin", "admin"]), updateDealer);
-router.delete("/:id", requireRole(["master_admin", "admin"]), deleteDealer);
+router.get("/", requireRole(["master_admin", "master_admin"]), listDealers);
+router.get("/:id", requireRole(["master_admin", "master_admin"]), getDealer);
+router.post("/", requireRole(["master_admin", "master_admin"]), createDealer);
+router.put("/:id", requireRole(["master_admin", "master_admin"]), updateDealer);
+router.delete("/:id", requireRole(["master_admin", "master_admin"]), deleteDealer);
 
 export default router;

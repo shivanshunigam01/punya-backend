@@ -8,7 +8,7 @@ const schema = Joi.object({
   whatsapp_number: Joi.string().allow("", null),
   email: Joi.string().email().allow("", null),
   address: Joi.string().allow("", null),
-  working_hours: Joi.object().default({}),
+    working_hours: Joi.string().allow("", null),
   social_links: Joi.object().default({}),
   default_seo_title: Joi.string().allow("", null),
   default_seo_description: Joi.string().allow("", null),

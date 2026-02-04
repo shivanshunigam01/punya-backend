@@ -5,6 +5,6 @@ import { requireAuth, requireRole } from "../../middleware/auth.js";
 const r = Router();
 
 r.get("/", getEmiSettings);
-r.put("/", requireAuth, requireRole(["admin"]), updateEmiSettings);
+r.put("/", requireAuth, requireRole(["master_admin"]), updateEmiSettings);
 
 export default r;

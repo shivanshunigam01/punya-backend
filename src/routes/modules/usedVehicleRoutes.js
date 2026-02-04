@@ -13,7 +13,7 @@ r.get("/:id", getUsedVehicle);
 r.post(
   "/",
   requireAuth,
-  requireRole(["master_admin", "admin"]),
+  requireRole(["master_admin", "master_admin"]),
   uploadProductMedia,
   createUsedVehicle
 );
@@ -21,11 +21,11 @@ r.post(
 r.put(
   "/:id",
   requireAuth,
-  requireRole(["master_admin", "admin"]),
+  requireRole(["master_admin", "master_admin"]),
   uploadProductMedia,
   updateUsedVehicle
 );
-r.patch("/:id/status", requireAuth, requireRole(["admin","master_admin"]), patchUsedVehicleStatus);
-r.delete("/:id", requireAuth, requireRole(["admin","master_admin"]), deleteUsedVehicle);
+r.patch("/:id/status", requireAuth, requireRole(["master_admin","master_admin"]), patchUsedVehicleStatus);
+r.delete("/:id", requireAuth, requireRole(["master_admin","master_admin"]), deleteUsedVehicle);
 
 export default r;

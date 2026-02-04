@@ -10,6 +10,7 @@ import { errorHandler, notFound } from "./middleware/error.js";
 import { rateLimiters } from "./middleware/rateLimiters.js";
 import { attachRequestMeta } from "./middleware/requestMeta.js";
 import routes from "./routes/index.js";
+import { trackVisitor } from "./middleware/trackVisitor.js";
 
 const app = express();
 
@@ -54,7 +55,7 @@ app.get("/", (req, res) => {
 
 /* routes */
 app.use("/", routes);
-
+app.use(trackVisitor);
 /* errors */
 app.use(notFound);
 app.use(errorHandler);
