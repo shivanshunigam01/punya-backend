@@ -23,6 +23,9 @@ import productMediaRoutes from "./modules/productMediaRoutes.js";
 import dealerRoutes from "../routes/dealerRoutes.js"
 import offerRoutes from "./offer.routes.js";
 import contentPageRoutes from "../routes/contentPage.routes.js";
+import paymentPageRoutes from "../routes/payment.routes.js";
+import cibilSyncRoutes from "./modules/cibilSync.routes.js";
+
 
 
 
@@ -35,6 +38,11 @@ router.use("/auth", authRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/offers", offerRoutes);
 router.use("/content-pages", contentPageRoutes);
+router.use("/payments", paymentPageRoutes);
+router.use("/cibil", cibilSyncRoutes);
+router.use("/finance", financeRoutes);
+
+
 
 router.use("/banners", bannerRoutes);
 router.use("/brands", brandRoutes);

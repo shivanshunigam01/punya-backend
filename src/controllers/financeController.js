@@ -21,22 +21,22 @@ const applySchema = Joi.object({
   applicant_email: Joi.string().email().allow("", null),
 });
 
-export const applyFinance = asyncHandler(async (req, res) => {
-  const { error, value } = applySchema.validate(req.body, { abortEarly: false, stripUnknown: true });
-  if (error) throw error;
+// export const applyFinance = asyncHandler(async (req, res) => {
+//   const { error, value } = applySchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+//   if (error) throw error;
 
-  let application_number;
-  for (let i = 0; i < 5; i++) {
-    const candidate = makeAppNumber();
-    const exists = await FinanceApplication.findOne({ application_number: candidate });
-    if (!exists) { application_number = candidate; break; }
-  }
-  if (!application_number) application_number = `FIN-${Date.now()}`;
+//   let application_number;
+//   for (let i = 0; i < 5; i++) {
+//     const candidate = makeAppNumber();
+//     const exists = await FinanceApplication.findOne({ application_number: candidate });
+//     if (!exists) { application_number = candidate; break; }
+//   }
+//   if (!application_number) application_number = `FIN-${Date.now()}`;
 
-  await FinanceApplication.create({ ...value, application_number, status: "pending" });
+//   await FinanceApplication.create({ ...value, application_number, status: "pending" });
 
-  return created(res, { application_number, message: "Application received! Our finance team will call you within 2 hours." });
-});
+//   return created(res, { application_number, message: "Application received! Our finance team will call you within 2 hours." });
+// });
 
 export const listFinanceApplications = asyncHandler(async (req, res) => {
   const q = {};
@@ -129,3 +129,77 @@ export const patchFinanceStatus = asyncHandler(async (req, res) => {
   if (!item) return fail(res, "NOT_FOUND", "Finance application not found", null, 404);
   return ok(res, item);
 });
+
+
+export const applyFinance = async (req, res) => {
+  try {
+    const {
+      vehicleType,
+      business,
+      name,
+      mobile,
+      district,
+      approximateBudget,
+      email,
+      source,
+    } = req.body;
+
+    // 🔒 Validation
+    if (!vehicleType || !business || !name || !mobile || !district) {
+      return res.status(400).json({
+        ok: false,
+        error: "Required fields missing",
+      });
+    }
+
+    if (!/^\d{10}$/.test(String(mobile))) {
+      return res.status(400).json({
+        ok: false,
+        error: "Mobile number must be 10 digits",
+      });
+    }
+
+    // 🧾 Generate Application Number
+    const applicationNumber = `FIN-${Date.now()}-${Math.floor(
+      100 + Math.random() * 900
+    )}`;
+
+    // 💾 Save application
+    const application = await FinanceApplication.create({
+      application_number: applicationNumber,
+
+      vehicle_type: vehicleType,
+      business_type: business,
+      approximate_budget: approximateBudget || null,
+
+      applicant_name: name,
+      applicant_mobile: mobile,
+      applicant_district: district,
+      applicant_email: email || null,
+
+      status: "pending",
+    });
+
+    return res.json({
+      ok: true,
+      message: "Finance application submitted successfully",
+      application_number: application.application_number,
+      id: application._id,
+    });
+  } catch (err) {
+    console.error("applyFinance error:", err);
+
+    // Handle duplicate application_number (very rare)
+    if (err.code === 11000) {
+      return res.status(500).json({
+        ok: false,
+        error: "Please retry submission",
+      });
+    }
+
+    return res.status(500).json({
+      ok: false,
+      error: "Failed to submit finance application",
+    });
+  }
+};

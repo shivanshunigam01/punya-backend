@@ -1,7 +1,13 @@
-// server.js
 import dotenv from "dotenv";
-dotenv.config(); // must be first
+import path from "path";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({
+  path: path.join(__dirname, ".env"),
+});
 import http from "http";
 import app from "./src/app.js";
 import { connectDB } from "./src/config/db.js";
@@ -10,6 +16,10 @@ import { logger } from "./src/utils/logger.js";
 
 const PORT = process.env.PORT; // ❗ DO NOT FALLBACK IN HOSTINGER
 
+console.log(
+  "🔥 ENV CHECK:",
+  process.env.SUREPASS_TOKEN?.slice(0, 30)
+);
 async function startServer() {
   try {
     initCloudinary(); // safe here

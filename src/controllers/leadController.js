@@ -28,30 +28,57 @@ const createSchema = Joi.object({
   utm_campaign: Joi.string().allow("", null),
 });
 
-export const createLead = asyncHandler(async (req, res) => {
-  const { error, value } = createSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
-  if (error) throw error;
+export const createLead = async (req, res) => {
+  try {
+    const {
+      source,
+      source_page,
+      customer_name,
+      customer_mobile,
+      customer_district,
+      note,
+      priority,
+    } = req.body;
 
-  // generate unique lead number (retry few times)
-  let lead_number;
-  for (let i = 0; i < 5; i++) {
-    const candidate = makeLeadNumber();
-    const exists = await Lead.findOne({ lead_number: candidate });
-    if (!exists) { lead_number = candidate; break; }
+    if (!source || !customer_name || !customer_mobile) {
+      return res.status(400).json({
+        success: false,
+        error: "Required fields missing",
+      });
+    }
+
+    const lead = await Lead.create({
+      lead_number: `LD-${Date.now()}`,
+      source,
+      source_page,
+      customer_name,
+      customer_mobile,
+      customer_district,
+      priority: priority || "medium",
+
+      notes: note
+        ? [
+            {
+              note,
+              created_by: null, // public lead
+            },
+          ]
+        : [],
+    });
+
+    res.json({
+      success: true,
+      id: lead._id,
+      lead_number: lead.lead_number,
+    });
+  } catch (err) {
+    console.error("Create lead error:", err);
+    res.status(500).json({
+      success: false,
+      error: "Failed to create lead",
+    });
   }
-  if (!lead_number) lead_number = `PVS-${Date.now()}`;
-
-  const lead = await Lead.create({
-    ...value,
-    lead_number,
-    source_product_id: value.source_product_id || null,
-    status: "new",
-    priority: "medium",
-    client_meta: req.clientInfo,
-  });
-
-  return created(res, { lead_number: lead.lead_number, message: "Enquiry received! Our team will call you within 30 minutes." });
-});
+};
 
 export const listLeads = asyncHandler(async (req, res) => {
   const {

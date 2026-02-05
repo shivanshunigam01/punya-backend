@@ -9,10 +9,10 @@ import {
 
 const router = express.Router();
 
+router.get("/social-links", getSocialLinks);
+router.put("/social-links", updateSocialLinks);
 router.get("/", getAllPages);
 router.put("/:id", updatePage);
 
-router.get("/social-links", getSocialLinks);
-router.put("/social-links", updateSocialLinks);
 
 export default router;

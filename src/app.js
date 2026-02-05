@@ -11,6 +11,9 @@ import { rateLimiters } from "./middleware/rateLimiters.js";
 import { attachRequestMeta } from "./middleware/requestMeta.js";
 import routes from "./routes/index.js";
 import { trackVisitor } from "./middleware/trackVisitor.js";
+import dotenv from "dotenv";
+dotenv.config();
+
 
 const app = express();
 

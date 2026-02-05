@@ -15,6 +15,12 @@ export const getAllPages = async (req, res) => {
 export const updatePage = async (req, res) => {
   const { id } = req.params;
 
+  if (!id || id === "undefined") {
+    return res.status(400).json({
+      message: "Invalid content page id",
+    });
+  }
+
   const page = await ContentPage.findByIdAndUpdate(
     id,
     {
@@ -30,6 +36,7 @@ export const updatePage = async (req, res) => {
 
   res.json(page);
 };
+
 
 /**
  * GET /api/content-pages/social-links

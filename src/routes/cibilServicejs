@@ -1,0 +1,93 @@
+import axios from "axios";
+import { loadRazorpay } from "@/lib/loadRazorpay";
+
+const API = import.meta.env.VITE_API_URL;
+
+export interface CibilFormPayload {
+  customer_name: string;
+  mobile: string;
+  pan: string;
+  dob: string;
+  linked_lead_id?: string | null;
+}
+
+/* =========================
+   STEP 1: Create Order
+========================= */
+export async function createCibilOrder(payload: CibilFormPayload) {
+  const { data } = await axios.post(`${API}/cibil/create-order`, payload);
+  return data;
+}
+
+/* =========================
+   STEP 2: Pay + Verify + Fetch CIBIL
+========================= */
+export async function payAndFetchCibil(
+  payload: CibilFormPayload
+): Promise<{
+  ok: boolean;
+  cibil_score?: number;
+  score_band?: string;
+}> {
+  await loadRazorpay();
+
+  const orderResp = await createCibilOrder(payload);
+
+  return new Promise((resolve, reject) => {
+    const RazorpayCtor = (window as any).Razorpay;
+    if (!RazorpayCtor) return reject("Razorpay SDK missing");
+
+    const rzp = new RazorpayCtor({
+      key: orderResp.razorpay_key_id,
+      amount: orderResp.order.amount,
+      currency: "INR",
+      order_id: orderResp.order.id,
+      name: "CIBIL Check",
+      description: "Credit Score Verification",
+      prefill: {
+        name: payload.customer_name,
+        contact: payload.mobile,
+      },
+      handler: async (resp: any) => {
+        try {
+          const { data } = await axios.post(
+            `${API}/cibil/verify-and-check`,
+            {
+              razorpay_order_id: resp.razorpay_order_id,
+              razorpay_payment_id: resp.razorpay_payment_id,
+              razorpay_signature: resp.razorpay_signature,
+            }
+          );
+          resolve({ ok: true, ...data });
+        } catch (e: any) {
+          reject(e?.response?.data || "CIBIL verification failed");
+        }
+      },
+      modal: {
+        ondismiss: () => reject("Payment cancelled"),
+      },
+    });
+
+    rzp.open();
+  });
+}
+
+/* =========================
+   STEP 3: Download PDF
+========================= */
+export async function downloadCibilPdf(payload: {
+  name: string;
+  mobile: string;
+  pan: string;
+}) {
+  const { data } = await axios.post(`${API}/payment/experian-pdf`, {
+    ...payload,
+    consent: "Y",
+  });
+
+  if (!data?.credit_report_link) {
+    throw new Error("PDF link not found");
+  }
+
+  window.open(data.credit_report_link, "_blank");
+}

@@ -1,6 +1,7 @@
 import { Dealer } from "../models/Dealer.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ok, created, fail } from "../utils/apiResponse.js";
+import mongoose from "mongoose";
 
 /**
  * GET /dealers
