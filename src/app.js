@@ -30,18 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 
 /* cors */
-app.use(
-  cors({
-    origin: [
-      "https://patliputragroup.co.in",
-      "https://cpanel.patliputragroup.com",
-      "http://localhost:8080",
-      "http://localhost:8081",
-      "https://patliputragroup.com/"
-    ],
-    credentials: true,
-  })
-);
+app.use(cors());
 
 app.use(morgan("dev"));
 
