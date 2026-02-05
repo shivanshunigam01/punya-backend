@@ -36,7 +36,8 @@ app.use(
       "https://patliputragroup.co.in",
       "https://cpanel.patliputragroup.com",
       "http://localhost:8080",
-      "http://localhost:8081"
+      "http://localhost:8081",
+      "https://patliputragroup.com/"
     ],
     credentials: true,
   })
