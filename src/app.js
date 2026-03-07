@@ -5,6 +5,8 @@ import morgan from "morgan";
 import compression from "compression";
 import mongoSanitize from "express-mongo-sanitize";
 import hpp from "hpp";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import { errorHandler, notFound } from "./middleware/error.js";
 import { rateLimiters } from "./middleware/rateLimiters.js";
@@ -14,6 +16,8 @@ import { trackVisitor } from "./middleware/trackVisitor.js";
 import dotenv from "dotenv";
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -46,7 +50,8 @@ app.get("/", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
-
+/* serve uploaded files */
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 /* routes */
 app.use("/", routes);
 app.use(trackVisitor);
