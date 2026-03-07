@@ -72,7 +72,7 @@ router.post("/razorpay/order", async (req, res) => {
     const razor = getRazorpayInstance();
 
     const order = await razor.orders.create({
-      amount: 1 * 100,
+      amount: 99 * 100,
       currency: "INR",
       receipt: `cibil_${Date.now()}`,
     });
