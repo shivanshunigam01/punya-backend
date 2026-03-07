@@ -23,8 +23,8 @@ app.use(mongoSanitize());
 app.use(hpp());
 
 /* parsers */
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 /* perf */
 app.use(compression());
