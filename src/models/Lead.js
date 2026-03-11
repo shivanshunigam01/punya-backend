@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const LeadNoteSchema = new mongoose.Schema(
   {
     note: { type: String, required: true },
-    created_by: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    created_by: { type: mongoose.Schema.Types.ObjectId, ref: "User",  default: null },
     created_at: { type: Date, default: Date.now },
   },
   { _id: true }
