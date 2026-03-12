@@ -132,8 +132,43 @@ const resolveCategory = async (name, brandId) => {
 ================================ */
 
 // LIST
+// export const listProducts = asyncHandler(async (req, res) => {
+//   const q = {};
+//   if (req.query.is_active !== undefined) {
+//     q.is_active = req.query.is_active === "true";
+//   }
+
+//   if (req.query.search) {
+//     q.$or = [
+//       { name: { $regex: req.query.search, $options: "i" } },
+//       { short_description: { $regex: req.query.search, $options: "i" } },
+//     ];
+//   }
+
+//   const { page, per_page, skip, limit } = parsePagination(req.query);
+
+//   const [items, total] = await Promise.all([
+//     Product.find(q)
+//       .populate("brand_id", "name")
+//       .populate("category_id", "name")
+//       .sort({ created_at: -1 })
+//       .skip(skip)
+//       .limit(limit),
+//     Product.countDocuments(q),
+//   ]);
+
+//   return ok(res, items.map(mapProduct), {
+//     total,
+//     page,
+//     per_page,
+//     total_pages: Math.ceil(total / per_page),
+//   });
+// });
+
+
 export const listProducts = asyncHandler(async (req, res) => {
   const q = {};
+
   if (req.query.is_active !== undefined) {
     q.is_active = req.query.is_active === "true";
   }
@@ -145,23 +180,13 @@ export const listProducts = asyncHandler(async (req, res) => {
     ];
   }
 
-  const { page, per_page, skip, limit } = parsePagination(req.query);
-
-  const [items, total] = await Promise.all([
-    Product.find(q)
-      .populate("brand_id", "name")
-      .populate("category_id", "name")
-      .sort({ created_at: -1 })
-      .skip(skip)
-      .limit(limit),
-    Product.countDocuments(q),
-  ]);
+  const items = await Product.find(q)
+    .populate("brand_id", "name")
+    .populate("category_id", "name")
+    .sort({ created_at: -1 });
 
   return ok(res, items.map(mapProduct), {
-    total,
-    page,
-    per_page,
-    total_pages: Math.ceil(total / per_page),
+    total: items.length
   });
 });
 
