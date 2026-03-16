@@ -129,37 +129,76 @@ export const getFinanceStatus = asyncHandler(async (_req, res) => {
 /* =====================================================
    5️⃣ WEBSITE TRAFFIC (LINE CHART)
 ===================================================== */
+// export const getWebsiteTraffic = asyncHandler(async (_req, res) => {
+// const traffic = await Traffic.aggregate([
+//   {
+//     $group: {
+//       _id: {
+//         $dateToString: {
+//           format: "%Y-%m-%d", // ✅ SAFE
+//           date: "$created_at"
+//         }
+//       },
+//       visitors: { $sum: 1 }
+//     }
+//   },
+//   { $sort: { _id: 1 } },
+//   { $limit: 7 }
+// ]);
+
+// res.json({
+//   data: traffic.map(t => ({
+//     date: t._id,
+//     visitors: t.visitors
+//   }))
+// });
+
+
+//   const totalVisitors = await VisitLog.countDocuments();
+//   const todayVisitors = await VisitLog.countDocuments({
+//     created_at: {
+//       $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+//     },
+//   });
+//   const uniqueVisitors = (await VisitLog.distinct("ip_address")).length;
+
+//   return ok(res, {
+//     totalVisitors,
+//     todayVisitors,
+//     uniqueVisitors,
+//     trafficTrend: traffic.map(t => ({
+//       date: t._id,
+//       visitors: t.visitors,
+//     })),
+//   });
+// });
+
+
 export const getWebsiteTraffic = asyncHandler(async (_req, res) => {
-const traffic = await Traffic.aggregate([
-  {
-    $group: {
-      _id: {
-        $dateToString: {
-          format: "%Y-%m-%d", // ✅ SAFE
-          date: "$created_at"
-        }
-      },
-      visitors: { $sum: 1 }
-    }
-  },
-  { $sort: { _id: 1 } },
-  { $limit: 7 }
-]);
-
-res.json({
-  data: traffic.map(t => ({
-    date: t._id,
-    visitors: t.visitors
-  }))
-});
-
+  const traffic = await VisitLog.aggregate([
+    {
+      $group: {
+        _id: {
+          $dateToString: {
+            format: "%Y-%m-%d",
+            date: "$created_at"
+          }
+        },
+        visitors: { $sum: 1 }
+      }
+    },
+    { $sort: { _id: 1 } },
+    { $limit: 7 }
+  ]);
 
   const totalVisitors = await VisitLog.countDocuments();
+
   const todayVisitors = await VisitLog.countDocuments({
     created_at: {
-      $gte: new Date(new Date().setHours(0, 0, 0, 0)),
-    },
+      $gte: new Date(new Date().setHours(0, 0, 0, 0))
+    }
   });
+
   const uniqueVisitors = (await VisitLog.distinct("ip_address")).length;
 
   return ok(res, {
@@ -168,7 +207,7 @@ res.json({
     uniqueVisitors,
     trafficTrend: traffic.map(t => ({
       date: t._id,
-      visitors: t.visitors,
-    })),
+      visitors: t.visitors
+    }))
   });
 });
