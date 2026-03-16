@@ -19,7 +19,7 @@ router.use(requireAuth);
 /**
  * ADMIN / MASTER ADMIN
  */
-router.get("/", requireRole(["master_admin", "master_admin"]), listOffers);
+router.get("/"), listOffers);
 router.get("/:id", requireRole(["master_admin", "master_admin"]), getOffer);
 router.post("/", requireRole(["master_admin", "master_admin"]), createOffer);
 router.put("/:id", requireRole(["master_admin", "master_admin"]), updateOffer);
