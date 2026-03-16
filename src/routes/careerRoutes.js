@@ -1,9 +1,10 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const careerController = require('../controllers/careerController');
-const { authenticate } = require('../middleware/auth');
-const { authorize } = require('../middleware/rbac');
-const upload = require('../middleware/upload');
+
+import careerController from '../controllers/careerController.js';
+import { authenticate } from '../middleware/auth.js';
+import { authorize } from '../middleware/rbac.js';
+import upload from '../middleware/upload.js';
 
 // ════════════ PUBLIC ROUTES (User Panel) ════════════
 
@@ -31,4 +32,4 @@ router.get('/applications', authenticate, authorize('careers', 'view'), careerCo
 router.patch('/applications/:id/status', authenticate, authorize('careers', 'edit'), careerController.updateApplicationStatus);
 router.delete('/applications/:id', authenticate, authorize('careers', 'delete'), careerController.deleteApplication);
 
-module.exports = router;
+export default router;

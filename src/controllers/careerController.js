@@ -1,13 +1,13 @@
-const JobOpening = require('../models/JobOpening');
-const JobApplication = require('../models/JobApplication');
-const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
+import JobOpening from '../models/JobOpening.js';
+import JobApplication from '../models/JobApplication.js';
+import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
 
 // ═══════════════════════════════════════
 // JOB OPENINGS
 // ═══════════════════════════════════════
 
 // GET /api/careers/openings
-exports.getAllOpenings = async (req, res, next) => {
+const getAllOpenings = async (req, res, next) => {
   try {
     const { search, is_active } = req.query;
     const filter = {};
@@ -23,7 +23,7 @@ exports.getAllOpenings = async (req, res, next) => {
 };
 
 // GET /api/careers/openings/active  (PUBLIC — no auth)
-exports.getActiveOpenings = async (req, res, next) => {
+const getActiveOpenings = async (req, res, next) => {
   try {
     const openings = await JobOpening.find({ isActive: true }).sort({ priority: -1, createdAt: -1 });
     res.json({ data: openings });
@@ -33,7 +33,7 @@ exports.getActiveOpenings = async (req, res, next) => {
 };
 
 // GET /api/careers/openings/:id
-exports.getOpeningById = async (req, res, next) => {
+const getOpeningById = async (req, res, next) => {
   try {
     const opening = await JobOpening.findById(req.params.id);
     if (!opening) return res.status(404).json({ message: 'Job opening not found' });
@@ -44,7 +44,7 @@ exports.getOpeningById = async (req, res, next) => {
 };
 
 // POST /api/careers/openings
-exports.createOpening = async (req, res, next) => {
+const createOpening = async (req, res, next) => {
   try {
     const opening = await JobOpening.create(req.body);
     res.status(201).json({ data: opening });
@@ -54,7 +54,7 @@ exports.createOpening = async (req, res, next) => {
 };
 
 // PUT /api/careers/openings/:id
-exports.updateOpening = async (req, res, next) => {
+const updateOpening = async (req, res, next) => {
   try {
     const opening = await JobOpening.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -68,7 +68,7 @@ exports.updateOpening = async (req, res, next) => {
 };
 
 // DELETE /api/careers/openings/:id
-exports.deleteOpening = async (req, res, next) => {
+const deleteOpening = async (req, res, next) => {
   try {
     const opening = await JobOpening.findByIdAndDelete(req.params.id);
     if (!opening) return res.status(404).json({ message: 'Job opening not found' });
@@ -85,7 +85,7 @@ exports.deleteOpening = async (req, res, next) => {
 // ═══════════════════════════════════════
 
 // GET /api/careers/applications  (Admin)
-exports.getAllApplications = async (req, res, next) => {
+const getAllApplications = async (req, res, next) => {
   try {
     const { job_id, status, search } = req.query;
     const filter = {};
@@ -114,7 +114,7 @@ exports.getAllApplications = async (req, res, next) => {
 
 // POST /api/careers/applications  (PUBLIC — user panel form submission)
 // Expects multipart/form-data with resume file
-exports.submitApplication = async (req, res, next) => {
+const submitApplication = async (req, res, next) => {
   try {
     const { jobId, name, email, mobile, whyShouldWeHire } = req.body;
 
@@ -154,7 +154,7 @@ exports.submitApplication = async (req, res, next) => {
 };
 
 // PATCH /api/careers/applications/:id/status  (Admin)
-exports.updateApplicationStatus = async (req, res, next) => {
+const updateApplicationStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
     const validStatuses = ['new', 'reviewed', 'shortlisted', 'rejected', 'hired'];
@@ -175,7 +175,7 @@ exports.updateApplicationStatus = async (req, res, next) => {
 };
 
 // DELETE /api/careers/applications/:id  (Admin)
-exports.deleteApplication = async (req, res, next) => {
+const deleteApplication = async (req, res, next) => {
   try {
     const application = await JobApplication.findByIdAndDelete(req.params.id);
     if (!application) return res.status(404).json({ message: 'Application not found' });
@@ -183,4 +183,17 @@ exports.deleteApplication = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+};
+
+export default {
+  getAllOpenings,
+  getActiveOpenings,
+  getOpeningById,
+  createOpening,
+  updateOpening,
+  deleteOpening,
+  getAllApplications,
+  submitApplication,
+  updateApplicationStatus,
+  deleteApplication
 };
