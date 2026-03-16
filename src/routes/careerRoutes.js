@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 
 import careerController from '../controllers/careerController.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireRole } from '../';
 import upload from '../middleware/upload.js';
 
 // ════════════ PUBLIC ROUTES (User Panel) ════════════

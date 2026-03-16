@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const jobOpeningSchema = new mongoose.Schema(
   {
@@ -7,8 +7,8 @@ const jobOpeningSchema = new mongoose.Schema(
     experience: { type: String, required: true, trim: true },
     employmentType: {
       type: String,
-      enum: ['Full Time', 'Part Time', 'Contract', 'Internship'],
-      default: 'Full Time',
+      enum: ["Full Time", "Part Time", "Contract", "Internship"],
+      default: "Full Time",
     },
     description: { type: String, required: true },
     qualifications: [{ type: String }],
@@ -18,6 +18,8 @@ const jobOpeningSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-jobOpeningSchema.index({ title: 'text', location: 'text' });
+jobOpeningSchema.index({ title: "text", location: "text" });
 
-module.exports = mongoose.model('JobOpening', jobOpeningSchema);
+const JobOpening = mongoose.model("JobOpening", jobOpeningSchema);
+
+export default JobOpening;
