@@ -1,6 +1,6 @@
 import JobOpening from '../models/JobOpening.js';
 import JobApplication from '../models/JobApplication.js';
-import { uploadToCloudinary } from '../config/cloudinary.js';
+import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
 
 // ═══════════════════════════════════════
 // JOB OPENINGS
