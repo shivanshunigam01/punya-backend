@@ -37,3 +37,5 @@ export const uploadProductMedia = multer({
   { name: "brochure", maxCount: 1 },
    { name: "inspectionReport", maxCount: 1 },
 ]);
+
+export default uploadProductMedia;
