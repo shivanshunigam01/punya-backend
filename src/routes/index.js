@@ -25,6 +25,7 @@ import offerRoutes from "./offer.routes.js";
 import contentPageRoutes from "../routes/contentPage.routes.js";
 import paymentPageRoutes from "../routes/payment.routes.js";
 import cibilSyncRoutes from "./modules/cibilSync.routes.js";
+import careerRoutes from "../routes/careerRoutes.js";
 
 
 
@@ -41,6 +42,8 @@ router.use("/content-pages", contentPageRoutes);
 router.use("/payments", paymentPageRoutes);
 router.use("/cibil", cibilSyncRoutes);
 router.use("/finance", financeRoutes);
+router.use('/careers', careerRoutes);
+
 
 
 
