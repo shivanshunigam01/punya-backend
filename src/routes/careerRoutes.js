@@ -17,7 +17,7 @@
 //   careerController.submitApplication
 // );
 
-// // ════════════ ADMIN ROUTES (Protected) ════════════
+// // ════════════ master_admin ROUTES (Protected) ════════════
 
 // // Job Openings CRUD
 // router.get('/openings', authenticate, authorize('careers', 'view'), careerController.getAllOpenings);
@@ -26,7 +26,7 @@
 // router.put('/openings/:id', authenticate, authorize('careers', 'edit'), careerController.updateOpening);
 // router.delete('/openings/:id', authenticate, authorize('careers', 'delete'), careerController.deleteOpening);
 
-// // Job Applications (Admin)
+// // Job Applications (master_admin)
 // router.get('/applications', authenticate, authorize('careers', 'view'), careerController.getAllApplications);
 // router.patch('/applications/:id/status', authenticate, authorize('careers', 'edit'), careerController.updateApplicationStatus);
 // router.delete('/applications/:id', authenticate, authorize('careers', 'delete'), careerController.deleteApplication);
@@ -52,63 +52,63 @@ router.post(
   careerController.submitApplication
 );
 
-/* ════════════ ADMIN ROUTES ════════════ */
+/* ════════════ master_admin ROUTES ════════════ */
 
 // Job Openings CRUD
 router.get(
   "/openings",
   requireAuth,
-  requireRole(["admin"]),
+  requireRole(["master_admin"]),
   careerController.getAllOpenings
 );
 
 router.get(
   "/openings/:id",
   requireAuth,
-  requireRole(["admin"]),
+  requireRole(["master_admin"]),
   careerController.getOpeningById
 );
 
 router.post(
   "/openings",
   requireAuth,
-  requireRole(["admin"]),
+  requireRole(["master_admin"]),
   careerController.createOpening
 );
 
 router.put(
   "/openings/:id",
   requireAuth,
-  requireRole(["admin"]),
+  requireRole(["master_admin"]),
   careerController.updateOpening
 );
 
 router.delete(
   "/openings/:id",
   requireAuth,
-  requireRole(["admin"]),
+  requireRole(["master_admin"]),
   careerController.deleteOpening
 );
 
-// Applications (Admin panel)
+// Applications (master_admin panel)
 router.get(
   "/applications",
   requireAuth,
-  requireRole(["admin"]),
+  requireRole(["master_admin"]),
   careerController.getAllApplications
 );
 
 router.patch(
   "/applications/:id/status",
   requireAuth,
-  requireRole(["admin"]),
+  requireRole(["master_admin"]),
   careerController.updateApplicationStatus
 );
 
 router.delete(
   "/applications/:id",
   requireAuth,
-  requireRole(["admin"]),
+  requireRole(["master_admin"]),
   careerController.deleteApplication
 );
 
