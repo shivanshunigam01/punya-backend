@@ -114,28 +114,105 @@ const getAllApplications = async (req, res, next) => {
 
 // POST /api/careers/applications  (PUBLIC — user panel form submission)
 // Expects multipart/form-data with resume file
+// const submitApplication = async (req, res, next) => {
+//   try {
+//     const { jobId, name, email, mobile, whyShouldWeHire } = req.body;
+
+//     // Validate job exists and is active
+//     const job = await JobOpening.findById(jobId);
+//     if (!job || !job.isActive) {
+//       return res.status(400).json({ message: 'Job opening not found or inactive' });
+//     }
+
+//     // Upload resume to Cloudinary (or local storage)
+//     let resumeUrl = '';
+//     if (req.file) {
+//       const result = await uploadToCloudinary(req.file.path, {
+//         folder: 'careers/resumes',
+//         resource_type: 'raw', // for PDFs/docs
+//       });
+//       resumeUrl = result.secure_url;
+//     } else if (req.body.resumeUrl) {
+//       resumeUrl = req.body.resumeUrl;
+//     } else {
+//       return res.status(400).json({ message: 'Resume file is required' });
+//     }
+
+//     const application = await JobApplication.create({
+//       jobId,
+//       name,
+//       email,
+//       mobile,
+//       resumeUrl,
+//       whyShouldWeHire: whyShouldWeHire || '',
+//     });
+
+//     res.status(201).json({ data: application, message: 'Application submitted successfully' });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+import fs from "fs";
+import path from "path";
+
 const submitApplication = async (req, res, next) => {
   try {
-    const { jobId, name, email, mobile, whyShouldWeHire } = req.body;
+    const {
+      jobId,
+      name,
+      email,
+      mobile,
+      address,
+      state,
+      district,
+      pincode,
+      position,
+      qualification,
+      employmentStatus,
+      expectedSalary,
+      whyShouldWeHire,
+    } = req.body;
 
-    // Validate job exists and is active
+    // Validate job
     const job = await JobOpening.findById(jobId);
     if (!job || !job.isActive) {
-      return res.status(400).json({ message: 'Job opening not found or inactive' });
+      return res.status(400).json({ message: "Job opening not found or inactive" });
     }
 
-    // Upload resume to Cloudinary (or local storage)
-    let resumeUrl = '';
-    if (req.file) {
-      const result = await uploadToCloudinary(req.file.path, {
-        folder: 'careers/resumes',
-        resource_type: 'raw', // for PDFs/docs
-      });
-      resumeUrl = result.secure_url;
-    } else if (req.body.resumeUrl) {
-      resumeUrl = req.body.resumeUrl;
+    /* ===============================
+       RESUME → LOCAL (like brochure)
+    ================================ */
+    let resumeUrl = null;
+
+    if (req.files?.resume?.[0]) {
+      const file = req.files.resume[0];
+
+      const targetPath = path.join(
+        "uploads/resumes",
+        path.basename(file.path)
+      );
+
+      // Move file
+      fs.renameSync(file.path, targetPath);
+
+      // Save URL
+      resumeUrl = "/" + targetPath.replace(/\\/g, "/");
     } else {
-      return res.status(400).json({ message: 'Resume file is required' });
+      return res.status(400).json({ message: "Resume file is required" });
+    }
+
+    // Clean salary
+    const cleanSalary = expectedSalary
+      ? Number(String(expectedSalary).replace(/,/g, ""))
+      : null;
+
+    // Optional duplicate check
+    const existing = await JobApplication.findOne({ jobId, email });
+    if (existing) {
+      return res.status(400).json({
+        message: "You have already applied for this job",
+      });
     }
 
     const application = await JobApplication.create({
@@ -143,16 +220,26 @@ const submitApplication = async (req, res, next) => {
       name,
       email,
       mobile,
+      address,
+      state,
+      district,
+      pincode,
+      position,
+      qualification,
+      employmentStatus,
+      expectedSalary: cleanSalary,
       resumeUrl,
-      whyShouldWeHire: whyShouldWeHire || '',
+      whyShouldWeHire: whyShouldWeHire || "",
     });
 
-    res.status(201).json({ data: application, message: 'Application submitted successfully' });
+    res.status(201).json({
+      data: application,
+      message: "Application submitted successfully",
+    });
   } catch (err) {
     next(err);
   }
 };
-
 // PATCH /api/careers/applications/:id/status  (Admin)
 const updateApplicationStatus = async (req, res, next) => {
   try {
