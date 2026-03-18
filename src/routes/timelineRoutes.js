@@ -5,10 +5,10 @@ import {
   createTimeline,
   updateTimeline,
   deleteTimeline,
-} from "../../controllers/timelineController.js";
+} from "../controllers/timelineController.js";
 
-import { requireAuth, requireRole } from "../../middleware/auth.js";
-import upload from "../../middleware/upload.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
+import upload from "../middleware/upload.js";
 
 const router = Router();
 
