@@ -2,48 +2,31 @@ import mongoose from "mongoose";
 
 const timelineSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: [true, 'Title is required'],
-      trim: true,
-    },
-    description: {
-      type: String,
-      default: '',
-    },
-    year: {
-      type: Number,
-      required: [true, 'Year is required'],
-    },
-    image: {
-      type: String,
-      default: '',
-    },
-    imageType: {
-      type: String,
-      enum: ['milestone', 'achievement', 'expansion', 'partnership', 'award', 'launch', 'other'],
-      default: 'milestone',
-    },
-    isActive: {
+    title: String,
+    description: String,
+    year: Number,
+
+    image: String,
+    public_id: String,
+
+    is_active: {
       type: Boolean,
       default: true,
     },
-    displayOrder: {
+
+    display_order: {
       type: Number,
       default: 0,
     },
-    image: {
-  type: String,
-  default: "",
-},
-publicId: {
-  type: String,
-  default: "",
-},
   },
-  { timestamps: true }
+  {
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+  }
 );
 
-timelineSchema.index({ year: -1, displayOrder: 1 });
+const Timeline = mongoose.model("Timeline", timelineSchema);
 
-module.exports = mongoose.model('Timeline', timelineSchema);
+export default Timeline;   // ✅ IMPORTANT
