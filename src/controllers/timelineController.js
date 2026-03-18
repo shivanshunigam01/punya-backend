@@ -1,5 +1,5 @@
 import Joi from "joi";
-import Timeline from "";
+import Timeline from "../models/Timeline.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ok, created, fail } from "../utils/apiResponse.js";
 
