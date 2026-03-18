@@ -14,4 +14,4 @@ router.post('/', requireAuth, uploadProductMedia, timelineController.create);
 router.put('/:id', requireAuth, uploadProductMedia, timelineController.update);
 router.delete('/:id', requireAuth, timelineController.remove);
 
-module.exports = router;
+export default router;
