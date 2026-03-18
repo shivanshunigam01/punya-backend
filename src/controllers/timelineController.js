@@ -1,9 +1,10 @@
-const Timeline = require("../models/Timeline");
-const asyncHandler = require("../utils/asyncHandler");
-const {
+import Timeline from "../models/Timeline.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import {
   uploadImage,
   deleteImage,
-} = require("../services/cloudinaryService");
+} from "../services/cloudinaryService.js";
+
 
 // ✅ GET ALL (ADMIN)
 const getAllTimeline = asyncHandler(async (req, res) => {
@@ -148,7 +149,7 @@ const deleteTimeline = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = {
+export {
   getAllTimeline,
   getActiveTimeline,
   getTimelineById,

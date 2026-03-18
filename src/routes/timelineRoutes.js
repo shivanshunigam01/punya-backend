@@ -1,34 +1,27 @@
-const express = require("express");
+import express from "express";
+import {
+  getAllTimeline,
+  getActiveTimeline,
+  getTimelineById,
+  createTimeline,
+  updateTimeline,
+  deleteTimeline,
+} from "../controllers/timelineController.js";
+
+import { requireAuth } from "../middleware/auth.js";
+import upload from "../middleware/upload.js";
+
 const router = express.Router();
 
-const timelineController = require("../controllers/timelineController");
+// PUBLIC
+router.get("/active", getActiveTimeline);
 
-// ✅ FIXED AUTH IMPORT
-const { requireAuth } = require("../middleware/auth");
+// ADMIN
+router.get("/", requireAuth, getAllTimeline);
+router.get("/:id", requireAuth, getTimelineById);
 
-const upload = require("../middleware/upload");
+router.post("/", requireAuth, upload.single("image"), createTimeline);
+router.put("/:id", requireAuth, upload.single("image"), updateTimeline);
+router.delete("/:id", requireAuth, deleteTimeline);
 
-// 🔓 PUBLIC
-router.get("/active", timelineController.getActiveTimeline);
-
-// 🔐 ADMIN
-router.get("/", requireAuth, timelineController.getAllTimeline);
-router.get("/:id", requireAuth, timelineController.getTimelineById);
-
-router.post(
-  "/",
-  requireAuth,
-  upload.single("image"),
-  timelineController.createTimeline
-);
-
-router.put(
-  "/:id",
-  requireAuth,
-  upload.single("image"),
-  timelineController.updateTimeline
-);
-
-router.delete("/:id", requireAuth, timelineController.deleteTimeline);
-
-module.exports = router;
+export default router;
