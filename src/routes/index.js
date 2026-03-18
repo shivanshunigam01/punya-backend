@@ -26,6 +26,8 @@ import contentPageRoutes from "../routes/contentPage.routes.js";
 import paymentPageRoutes from "../routes/payment.routes.js";
 import cibilSyncRoutes from "./modules/cibilSync.routes.js";
 import careerRoutes from "../routes/careerRoutes.js";
+import timelineRoutes from "../routes/timelineRoutes.js";
+
 
 
 
@@ -63,5 +65,7 @@ router.use("/analytics", analyticsRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/media", mediaRoutes);
 router.use("/cibil", cibilRoutes);
+router.use("/timeline", timelineRoutes);
+
 
 export default router;
