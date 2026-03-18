@@ -1,159 +1,176 @@
+import Joi from "joi";
 import Timeline from "../models/Timeline.js";
-import asyncHandler from "../utils/asyncHandler.js";
-import {
-  uploadImage,
-  deleteImage,
-} from "../services/cloudinaryService.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ok, created, fail } from "../utils/apiResponse.js";
 
+import cloudinary from "../config/cloudinary.js";
+import fs from "fs";
 
-// ✅ GET ALL (ADMIN)
-const getAllTimeline = asyncHandler(async (req, res) => {
-  const events = await Timeline.find().sort({ year: -1, displayOrder: 1 });
+/* ===============================
+   VALIDATION
+================================ */
 
-  res.json({
-    success: true,
-    data: events,
-  });
+const timelineSchema = Joi.object({
+  title: Joi.string().required(),
+  description: Joi.string().allow("", null),
+  year: Joi.number().required(),
+  isActive: Joi.boolean().default(true),
+  displayOrder: Joi.number().default(0),
 });
 
-// ✅ GET ACTIVE (PUBLIC)
-const getActiveTimeline = asyncHandler(async (req, res) => {
-  const events = await Timeline.find({ isActive: true }).sort({
+const timelineUpdateSchema = Joi.object({
+  title: Joi.string(),
+  description: Joi.string().allow("", null),
+  year: Joi.number(),
+  isActive: Joi.boolean(),
+  displayOrder: Joi.number(),
+}).min(1);
+
+/* ===============================
+   HELPERS
+================================ */
+
+const normalizeBody = (body) => ({
+  ...body,
+  year: body.year ? Number(body.year) : undefined,
+  isActive: body.isActive === "true" || body.isActive === true,
+  displayOrder: body.displayOrder ? Number(body.displayOrder) : 0,
+});
+
+const mapTimeline = (t) => ({
+  id: t._id,
+  title: t.title,
+  description: t.description,
+  year: t.year,
+  image: t.image,
+  publicId: t.public_id,
+  isActive: t.is_active,
+  displayOrder: t.display_order,
+  createdAt: t.created_at,
+});
+
+/* ===============================
+   CONTROLLERS
+================================ */
+
+// LIST
+export const listTimeline = asyncHandler(async (req, res) => {
+  const items = await Timeline.find({ is_active: true }).sort({
     year: -1,
-    displayOrder: 1,
+    display_order: 1,
   });
 
-  res.json({
-    success: true,
-    data: events,
-  });
-});
-
-// ✅ GET BY ID
-const getTimelineById = asyncHandler(async (req, res) => {
-  const event = await Timeline.findById(req.params.id);
-
-  if (!event) {
-    return res.status(404).json({
-      success: false,
-      message: "Timeline event not found",
-    });
-  }
-
-  res.json({
-    success: true,
-    data: event,
+  return ok(res, items.map(mapTimeline), {
+    total: items.length,
   });
 });
 
-// ✅ CREATE
-const createTimeline = asyncHandler(async (req, res) => {
-  const { title, description, year, imageType, isActive, displayOrder } =
-    req.body;
+// GET BY ID
+export const getTimelineById = asyncHandler(async (req, res) => {
+  const item = await Timeline.findById(req.params.id);
 
-  let imageData = {};
+  if (!item) return fail(res, "NOT_FOUND", "Timeline not found", null, 404);
 
+  return ok(res, mapTimeline(item));
+});
+
+// CREATE
+export const createTimeline = asyncHandler(async (req, res) => {
+  const normalizedBody = normalizeBody(req.body);
+
+  const { error, value } = timelineSchema.validate(normalizedBody, {
+    abortEarly: false,
+    stripUnknown: true,
+  });
+
+  if (error) throw error;
+
+  let imageUrl = "";
+  let publicId = "";
+
+  // ✅ CLOUDINARY UPLOAD (same as product)
   if (req.file) {
-    const uploaded = await uploadImage(req.file.path, "timeline");
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "timeline",
+    });
 
-    imageData = {
-      image: uploaded.url,
-      publicId: uploaded.publicId,
-    };
+    imageUrl = result.secure_url;
+    publicId = result.public_id;
+
+    fs.unlinkSync(req.file.path); // cleanup
   }
 
-  const event = await Timeline.create({
-    title,
-    description,
-    year: Number(year),
-    image: imageData.image || "",
-    publicId: imageData.publicId || "",
-    imageType,
-    isActive: isActive === "true" || isActive === true,
-    displayOrder: Number(displayOrder) || 0,
+  const timeline = await Timeline.create({
+    title: value.title,
+    description: value.description,
+    year: value.year,
+    image: imageUrl,
+    public_id: publicId,
+    is_active: value.isActive,
+    display_order: value.displayOrder,
   });
 
-  res.status(201).json({
-    success: true,
-    message: "Timeline event created",
-    data: event,
-  });
+  return created(res, mapTimeline(timeline));
 });
 
-// ✅ UPDATE
-const updateTimeline = asyncHandler(async (req, res) => {
-  const event = await Timeline.findById(req.params.id);
+// UPDATE
+export const updateTimeline = asyncHandler(async (req, res) => {
+  const normalizedBody = normalizeBody(req.body);
 
-  if (!event) {
-    return res.status(404).json({
-      success: false,
-      message: "Timeline event not found",
-    });
-  }
+  const { error, value } = timelineUpdateSchema.validate(normalizedBody, {
+    abortEarly: false,
+    stripUnknown: true,
+  });
 
-  const { title, description, year, imageType, isActive, displayOrder } =
-    req.body;
+  if (error) throw error;
 
-  // 🔥 Handle Image Update
+  const timeline = await Timeline.findById(req.params.id);
+
+  if (!timeline)
+    return fail(res, "NOT_FOUND", "Timeline not found", null, 404);
+
+  // ✅ IMAGE UPDATE
   if (req.file) {
     // delete old image
-    if (event.publicId) {
-      await deleteImage(event.publicId);
+    if (timeline.public_id) {
+      await cloudinary.uploader.destroy(timeline.public_id);
     }
 
-    const uploaded = await uploadImage(req.file.path, "timeline");
-
-    event.image = uploaded.url;
-    event.publicId = uploaded.publicId;
-  }
-
-  // Update fields
-  event.title = title || event.title;
-  event.description =
-    description !== undefined ? description : event.description;
-  event.year = year ? Number(year) : event.year;
-  event.imageType = imageType || event.imageType;
-  event.isActive = isActive === "true" || isActive === true;
-  event.displayOrder =
-    displayOrder !== undefined ? Number(displayOrder) : event.displayOrder;
-
-  await event.save();
-
-  res.json({
-    success: true,
-    message: "Timeline updated successfully",
-    data: event,
-  });
-});
-
-// ✅ DELETE
-const deleteTimeline = asyncHandler(async (req, res) => {
-  const event = await Timeline.findById(req.params.id);
-
-  if (!event) {
-    return res.status(404).json({
-      success: false,
-      message: "Timeline event not found",
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "timeline",
     });
+
+    timeline.image = result.secure_url;
+    timeline.public_id = result.public_id;
+
+    fs.unlinkSync(req.file.path);
   }
 
-  if (event.publicId) {
-    await deleteImage(event.publicId);
-  }
+  // update fields
+  if (value.title) timeline.title = value.title;
+  if ("description" in value) timeline.description = value.description;
+  if (value.year) timeline.year = value.year;
+  if ("isActive" in value) timeline.is_active = value.isActive;
+  if ("displayOrder" in value)
+    timeline.display_order = value.displayOrder;
 
-  await event.deleteOne();
+  await timeline.save();
 
-  res.json({
-    success: true,
-    message: "Timeline event deleted",
-  });
+  return ok(res, mapTimeline(timeline));
 });
 
-export {
-  getAllTimeline,
-  getActiveTimeline,
-  getTimelineById,
-  createTimeline,
-  updateTimeline,
-  deleteTimeline,
-};
+// DELETE
+export const deleteTimeline = asyncHandler(async (req, res) => {
+  const timeline = await Timeline.findById(req.params.id);
+
+  if (!timeline)
+    return fail(res, "NOT_FOUND", "Timeline not found", null, 404);
+
+  if (timeline.public_id) {
+    await cloudinary.uploader.destroy(timeline.public_id);
+  }
+
+  await timeline.deleteOne();
+
+  return ok(res, { message: "Timeline deleted successfully" });
+});

@@ -1,27 +1,49 @@
-import express from "express";
+import { Router } from "express";
 import {
-  getAllTimeline,
-  getActiveTimeline,
+  listTimeline,
   getTimelineById,
   createTimeline,
   updateTimeline,
   deleteTimeline,
-} from "../controllers/timelineController.js";
+} from "../../controllers/timelineController.js";
 
-import { requireAuth } from "../middleware/auth.js";
-import upload from "../middleware/upload.js";
+import { requireAuth, requireRole } from "../../middleware/auth.js";
+import upload from "../../middleware/upload.js";
 
-const router = express.Router();
+const router = Router();
 
-// PUBLIC
-router.get("/active", getActiveTimeline);
+/* ========= PUBLIC ========= */
+router.get("/", listTimeline);
 
-// ADMIN
-router.get("/", requireAuth, getAllTimeline);
-router.get("/:id", requireAuth, getTimelineById);
+/* ========= ADMIN ========= */
+router.get(
+  "/admin/:id",
+  requireAuth,
+  requireRole(["master_admin", "master_admin"]),
+  getTimelineById
+);
 
-router.post("/", requireAuth, upload.single("image"), createTimeline);
-router.put("/:id", requireAuth, upload.single("image"), updateTimeline);
-router.delete("/:id", requireAuth, deleteTimeline);
+router.post(
+  "/",
+  requireAuth,
+  requireRole(["master_admin", "master_admin"]),
+  upload.single("image"),
+  createTimeline
+);
+
+router.put(
+  "/:id",
+  requireAuth,
+  requireRole(["master_admin", "master_admin"]),
+  upload.single("image"),
+  updateTimeline
+);
+
+router.delete(
+  "/:id",
+  requireAuth,
+  requireRole(["master_admin", "master_admin"]),
+  deleteTimeline
+);
 
 export default router;
