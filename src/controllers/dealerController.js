@@ -24,7 +24,36 @@ export const getDealer = asyncHandler(async (req, res) => {
  * POST /dealers
  */
 export const createDealer = asyncHandler(async (req, res) => {
-  const dealer = await Dealer.create(req.body);
+  const {
+    name,
+    address,
+    city,
+    district,
+    state,
+    pincode,
+    phone,
+    whatsapp,
+    email,
+    brand,
+    latitude,
+    longitude,
+  } = req.body;
+
+  const dealer = await Dealer.create({
+    name,
+    address,
+    city,
+    district,
+    state,
+    pincode,
+    phone,
+    whatsapp,
+    email,
+    brand, // ✅ added
+    latitude,
+    longitude,
+  });
+
   return created(res, dealer);
 });
 
@@ -38,9 +67,39 @@ export const updateDealer = asyncHandler(async (req, res) => {
     return fail(res, "INVALID_ID", "Invalid dealer ID", null, 400);
   }
 
+  const {
+    name,
+    address,
+    city,
+    district,
+    state,
+    pincode,
+    phone,
+    whatsapp,
+    email,
+    brand,
+    latitude,
+    longitude,
+    isActive,
+  } = req.body;
+
   const dealer = await Dealer.findByIdAndUpdate(
     id,
-    req.body,
+    {
+      name,
+      address,
+      city,
+      district,
+      state,
+      pincode,
+      phone,
+      whatsapp,
+      email,
+      brand, // ✅ added
+      latitude,
+      longitude,
+      isActive,
+    },
     { new: true, runValidators: true }
   );
 

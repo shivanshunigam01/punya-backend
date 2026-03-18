@@ -13,6 +13,12 @@ const dealerSchema = new mongoose.Schema(
     phone: { type: String, required: true },
     whatsapp: { type: String },
     email: { type: String },
+    brand: {
+  type: String,
+  enum: ["JCB", "Ashok Leyland", "Switch EV"],
+  required: true,
+},
+
 
     latitude: { type: Number, default: 0 },
     longitude: { type: Number, default: 0 },
