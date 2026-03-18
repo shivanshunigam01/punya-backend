@@ -1,17 +1,34 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const timelineController = require('../controllers/timelineController');
-const { requireAuth } = require('../middleware/auth');
-const upload = require('../middleware/upload');
 
-// 🔓 Public
-router.get('/active', timelineController.getActive);
+const timelineController = require("../controllers/timelineController");
 
-// 🔐 Admin (protected)
-router.get('/', requireAuth, timelineController.getAll);
-router.get('/:id', requireAuth, timelineController.getById);
-router.post('/', requireAuth, uploadProductMedia, timelineController.create);
-router.put('/:id', requireAuth, uploadProductMedia, timelineController.update);
-router.delete('/:id', requireAuth, timelineController.remove);
+// ✅ FIXED AUTH IMPORT
+const { requireAuth } = require("../middleware/auth");
 
-export default router;
+const upload = require("../middleware/upload");
+
+// 🔓 PUBLIC
+router.get("/active", timelineController.getActiveTimeline);
+
+// 🔐 ADMIN
+router.get("/", requireAuth, timelineController.getAllTimeline);
+router.get("/:id", requireAuth, timelineController.getTimelineById);
+
+router.post(
+  "/",
+  requireAuth,
+  upload.single("image"),
+  timelineController.createTimeline
+);
+
+router.put(
+  "/:id",
+  requireAuth,
+  upload.single("image"),
+  timelineController.updateTimeline
+);
+
+router.delete("/:id", requireAuth, timelineController.deleteTimeline);
+
+module.exports = router;

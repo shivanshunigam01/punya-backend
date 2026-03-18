@@ -32,6 +32,14 @@ const timelineSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    image: {
+  type: String,
+  default: "",
+},
+publicId: {
+  type: String,
+  default: "",
+},
   },
   { timestamps: true }
 );
