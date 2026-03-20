@@ -13,7 +13,7 @@ import fs from "fs";
 const timelineSchema = Joi.object({
   title: Joi.string().required(),
   description: Joi.string().allow("", null),
-  year: Joi.number().required(),
+ date: Joi.date().required(), 
   isActive: Joi.boolean().default(true),
   displayOrder: Joi.number().default(0),
 });
@@ -21,7 +21,7 @@ const timelineSchema = Joi.object({
 const timelineUpdateSchema = Joi.object({
   title: Joi.string(),
   description: Joi.string().allow("", null),
-  year: Joi.number(),
+  date: Joi.date(),
   isActive: Joi.boolean(),
   displayOrder: Joi.number(),
 }).min(1);
@@ -32,7 +32,7 @@ const timelineUpdateSchema = Joi.object({
 
 const normalizeBody = (body) => ({
   ...body,
-  year: body.year ? Number(body.year) : undefined,
+   date: body.date ? new Date(body.date) : undefined,
   isActive: body.isActive === "true" || body.isActive === true,
   displayOrder: body.displayOrder ? Number(body.displayOrder) : 0,
 });
@@ -41,7 +41,7 @@ const mapTimeline = (t) => ({
   id: t._id,
   title: t.title,
   description: t.description,
-  year: t.year,
+  date: t.date,
   image: t.image,
   publicId: t.public_id,
   isActive: t.is_active,
@@ -56,7 +56,7 @@ const mapTimeline = (t) => ({
 // LIST
 export const listTimeline = asyncHandler(async (req, res) => {
   const items = await Timeline.find({ is_active: true }).sort({
-    year: -1,
+    date: -1,
     display_order: 1,
   });
 
@@ -103,7 +103,7 @@ export const createTimeline = asyncHandler(async (req, res) => {
   const timeline = await Timeline.create({
     title: value.title,
     description: value.description,
-    year: value.year,
+      date: value.date,
     image: imageUrl,
     public_id: publicId,
     is_active: value.isActive,
@@ -149,7 +149,7 @@ export const updateTimeline = asyncHandler(async (req, res) => {
   // update fields
   if (value.title) timeline.title = value.title;
   if ("description" in value) timeline.description = value.description;
-  if (value.year) timeline.year = value.year;
+ if (value.date) timeline.date = value.date; // ✅ changed
   if ("isActive" in value) timeline.is_active = value.isActive;
   if ("displayOrder" in value)
     timeline.display_order = value.displayOrder;

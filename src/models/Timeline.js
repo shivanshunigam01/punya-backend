@@ -4,7 +4,7 @@ const timelineSchema = new mongoose.Schema(
   {
     title: String,
     description: String,
-    year: Number,
+   date: { type: Date, required: true }
 
     image: String,
     public_id: String,
