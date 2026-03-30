@@ -4,7 +4,17 @@ const timelineSchema = new mongoose.Schema(
   {
     title: String,
     description: String,
-   date: { type: Date, required: true }
+    date: { type: Date, required: true },
+
+    image_type: {
+      type: String,
+      enum: [
+        'loan-mela', 'rural-activity', 'customer-meet', 'operator-meet',
+        'exchange-mela', 'financer-meet', 'launch-event', 'road-show',
+        'customer-testimony', 'customer-visit', 'group-event', 'others',
+      ],
+      default: 'others',
+    },
 
     image: String,
     public_id: String,

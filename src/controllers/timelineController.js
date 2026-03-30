@@ -10,10 +10,17 @@ import fs from "fs";
    VALIDATION
 ================================ */
 
+const IMAGE_TYPE_VALUES = [
+  'loan-mela', 'rural-activity', 'customer-meet', 'operator-meet',
+  'exchange-mela', 'financer-meet', 'launch-event', 'road-show',
+  'customer-testimony', 'customer-visit', 'group-event', 'others',
+];
+
 const timelineSchema = Joi.object({
   title: Joi.string().required(),
   description: Joi.string().allow("", null),
- date: Joi.date().required(), 
+  date: Joi.date().required(),
+  imageType: Joi.string().valid(...IMAGE_TYPE_VALUES).default('others'),
   isActive: Joi.boolean().default(true),
   displayOrder: Joi.number().default(0),
 });
@@ -22,6 +29,7 @@ const timelineUpdateSchema = Joi.object({
   title: Joi.string(),
   description: Joi.string().allow("", null),
   date: Joi.date(),
+  imageType: Joi.string().valid(...IMAGE_TYPE_VALUES),
   isActive: Joi.boolean(),
   displayOrder: Joi.number(),
 }).min(1);
@@ -32,7 +40,7 @@ const timelineUpdateSchema = Joi.object({
 
 const normalizeBody = (body) => ({
   ...body,
-   date: body.date ? new Date(body.date) : undefined,
+  date: body.date ? new Date(body.date) : undefined,
   isActive: body.isActive === "true" || body.isActive === true,
   displayOrder: body.displayOrder ? Number(body.displayOrder) : 0,
 });
@@ -42,6 +50,7 @@ const mapTimeline = (t) => ({
   title: t.title,
   description: t.description,
   date: t.date,
+  imageType: t.image_type,
   image: t.image,
   publicId: t.public_id,
   isActive: t.is_active,
@@ -103,7 +112,8 @@ export const createTimeline = asyncHandler(async (req, res) => {
   const timeline = await Timeline.create({
     title: value.title,
     description: value.description,
-      date: value.date,
+    date: value.date,
+    image_type: value.imageType,
     image: imageUrl,
     public_id: publicId,
     is_active: value.isActive,
@@ -149,10 +159,10 @@ export const updateTimeline = asyncHandler(async (req, res) => {
   // update fields
   if (value.title) timeline.title = value.title;
   if ("description" in value) timeline.description = value.description;
- if (value.date) timeline.date = value.date; // ✅ changed
+  if (value.date) timeline.date = value.date;
+  if (value.imageType) timeline.image_type = value.imageType;
   if ("isActive" in value) timeline.is_active = value.isActive;
-  if ("displayOrder" in value)
-    timeline.display_order = value.displayOrder;
+  if ("displayOrder" in value) timeline.display_order = value.displayOrder;
 
   await timeline.save();
 
