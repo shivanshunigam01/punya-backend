@@ -7,12 +7,13 @@ import { Brand } from "../models/Brand.js";
 import { Category } from "../models/Category.js";
 import { MediaFile } from "../models/MediaFile.js";
 import { makeSlug } from "../utils/slug.js";
+import { initCloudinary } from "../config/cloudinary.js";
+import cloudinary from "../config/cloudinary.js";
 
 dotenv.config({ path: path.join(process.cwd(), ".env") });
 
 const sourceDir =
   process.env.PRODUCT_IMAGES_DIR || "C:/Users/Shivanshu/Downloads/all images";
-const targetDir = path.join(process.cwd(), "uploads", "imported", "products");
 const allowedExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
 
 function titleFromFilename(filename) {
@@ -133,22 +134,9 @@ async function ensureBrandAndCategory(brandName, categoryName) {
   return { brand, category };
 }
 
-function copyProductImage(sourcePath) {
-  const filename = path.basename(sourcePath);
-  const targetPath = path.join(targetDir, filename);
-
-  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-
-  if (!fs.existsSync(targetPath)) {
-    fs.copyFileSync(sourcePath, targetPath);
-  }
-
-  return `/uploads/imported/products/${filename.replace(/\\/g, "/")}`;
-}
-
 async function seed() {
   await mongoose.connect(process.env.MONGODB_URI);
-  fs.mkdirSync(targetDir, { recursive: true });
+  initCloudinary();
   if (!fs.existsSync(sourceDir)) {
     throw new Error(`Images folder not found: ${sourceDir}`);
   }
@@ -166,7 +154,14 @@ async function seed() {
       inferred.brand,
       inferred.category
     );
-    const imageUrl = copyProductImage(filePath);
+    const publicId = `products/imported/${makeSlug(productName)}-${seededCount + 1}`;
+    const uploadResult = await cloudinary.uploader.upload(filePath, {
+      folder: "products/imported",
+      public_id: publicId,
+      overwrite: true,
+      resource_type: "image",
+    });
+    const imageUrl = uploadResult.secure_url;
     const slug = `${makeSlug(productName)}-${seededCount + 1}`;
 
     await Product.findOneAndUpdate(
@@ -189,12 +184,12 @@ async function seed() {
       { upsert: true, new: true }
     );
 
-    const filename = path.basename(imageUrl);
+    const filename = path.basename(filePath);
     await MediaFile.findOneAndUpdate(
       { url: imageUrl },
       {
         url: imageUrl,
-        thumbnail_url: imageUrl,
+        thumbnail_url: uploadResult.secure_url,
         filename,
         original_filename: filename,
         folder: "products-gallery",

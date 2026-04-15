@@ -410,8 +410,16 @@ export const updateProduct = asyncHandler(async (req, res) => {
     update.seo_description = value.seoDescription;
 
   if (req.files?.images?.length) {
-    update.gallery_images = req.files.images.map((f) => f.path);
-    update.featured_image = req.files.images[0]?.path || existingProduct.featured_image || null;
+    const uploadedImages = [];
+    for (const file of req.files.images) {
+      const result = await cloudinary.uploader.upload(file.path, {
+        folder: "products",
+      });
+      uploadedImages.push(result.secure_url);
+      fs.unlinkSync(file.path);
+    }
+    update.gallery_images = uploadedImages;
+    update.featured_image = uploadedImages[0] || existingProduct.featured_image || null;
   }
 
 if (req.files?.brochure?.[0]) {

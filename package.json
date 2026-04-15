@@ -9,7 +9,8 @@
     "start": "node server.js",
     "lint": "eslint .",
     "seed:admin": "node src/scripts/seedAdmin.js",
-    "seed:products-images": "node src/scripts/seedProductsFromLocalImages.js"
+    "seed:products-images": "node src/scripts/seedProductsFromLocalImages.js",
+    "migrate:products-images": "node src/scripts/migrateLocalProductImagesToCloudinary.js"
   },
   "engines": {
     "node": ">=18.0.0"
