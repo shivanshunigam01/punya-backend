@@ -22,8 +22,7 @@ export const syncCibilFromPayment = async (req, res) => {
     } = req.body;
 
     if (!customer_name || !mobile || !pan || !cibil_score) {
-      return erleich
-      res.status(400).json({
+      return res.status(400).json({
         ok: false,
         error: "Missing required CIBIL data",
       });

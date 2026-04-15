@@ -7,6 +7,23 @@ import { ok, created, fail } from "../utils/apiResponse.js";
 import { makeSlug } from "../utils/slug.js";
 import { parsePagination } from "../utils/pagination.js";
 
+const ALLOWED_PRODUCT_GROUPS = {
+  Trucks: ["Heavy Duty", "Medium Duty", "Light Duty"],
+  "Buses & Vans": ["Bus", "Van"],
+  SCV: ["Pickup", "Mini Truck", "Electric SCV"],
+  "TATA OK": ["Used"],
+};
+
+const ALLOWED_BRANDS = Object.keys(ALLOWED_PRODUCT_GROUPS);
+
+const validateCategoryForBrand = (brand, category) => {
+  if (category === undefined || category === null || category === "") {
+    return true;
+  }
+
+  return ALLOWED_PRODUCT_GROUPS[brand]?.includes(category) ?? false;
+};
+
 /* ===============================
    NORMALIZE MULTIPART BODY ✅
 ================================ */
@@ -27,6 +44,10 @@ const normalizeMultipartBody = (body) => ({
     typeof body.tcoItems === "string"
       ? JSON.parse(body.tcoItems)
       : body.tcoItems,
+  roiItems:
+    typeof body.roiItems === "string"
+      ? JSON.parse(body.roiItems)
+      : body.roiItems,
 });
 
 /* ===============================
@@ -40,9 +61,18 @@ const TcoItemSchema = Joi.object({
   unit: Joi.string().valid("monthly", "yearly", "one-time").required(),
 });
 
+const RoiItemSchema = Joi.object({
+  key: Joi.string().required(),
+  label: Joi.string().required(),
+  value: Joi.number().min(0).required(),
+  unit: Joi.string().valid("monthly", "yearly", "one-time").required(),
+});
+
 const productSchema = Joi.object({
   name: Joi.string().required(),
-  brand: Joi.string().required(),
+  brand: Joi.string()
+    .valid(...ALLOWED_BRANDS)
+    .required(),
   category: Joi.string().allow("", null),
 
   price: Joi.number().min(0).allow(null),
@@ -50,6 +80,7 @@ const productSchema = Joi.object({
 
   specifications: Joi.object().default({}),
   tcoItems: Joi.array().items(TcoItemSchema).default([]),
+  roiItems: Joi.array().items(RoiItemSchema).default([]),
 
   isActive: Joi.boolean().default(true),
   isNewLaunch: Joi.boolean().default(false),
@@ -58,11 +89,16 @@ const productSchema = Joi.object({
 
   seoTitle: Joi.string().allow("", null),
   seoDescription: Joi.string().allow("", null),
-});
+}).custom((value, helpers) => {
+  if (!validateCategoryForBrand(value.brand, value.category)) {
+    return helpers.error("any.invalid");
+  }
+  return value;
+}, "brand/category validation");
 
 const productUpdateSchema = Joi.object({
   name: Joi.string(),
-  brand: Joi.string(),
+  brand: Joi.string().valid(...ALLOWED_BRANDS),
   category: Joi.string().allow("", null),
 
   price: Joi.number().min(0).allow(null),
@@ -70,6 +106,7 @@ const productUpdateSchema = Joi.object({
 
   specifications: Joi.object(),
   tcoItems: Joi.array().items(TcoItemSchema),
+  roiItems: Joi.array().items(RoiItemSchema),
 
   isActive: Joi.boolean(),
   isNewLaunch: Joi.boolean(),
@@ -78,7 +115,14 @@ const productUpdateSchema = Joi.object({
 
   seoTitle: Joi.string().allow("", null),
   seoDescription: Joi.string().allow("", null),
-}).min(1);
+})
+  .min(1)
+  .custom((value, helpers) => {
+    if (value.brand && !validateCategoryForBrand(value.brand, value.category)) {
+      return helpers.error("any.invalid");
+    }
+    return value;
+  }, "brand/category validation");
 
 /* ===============================
    HELPERS
@@ -91,9 +135,11 @@ const mapProduct = (p) => ({
   category: p.category_id?.name,
   price: p.price,
   shortDescription: p.short_description,
+  featuredImage: p.featured_image,
   specifications: p.specifications,
   images: p.gallery_images,
   tcoItems: p.tco_items,
+  roiItems: p.roi_items,
   isActive: p.is_active,
   isNewLaunch: p.is_new_launch,
   isBestseller: p.is_bestseller,
@@ -106,6 +152,10 @@ const mapProduct = (p) => ({
 });
 
 const resolveBrand = async (name) => {
+  if (!ALLOWED_BRANDS.includes(name)) {
+    throw new Error(`Unsupported product group: ${name}`);
+  }
+
   let brand = await Brand.findOne({ name });
   if (!brand) {
     brand = await Brand.create({ name, slug: makeSlug(name) });
@@ -115,6 +165,15 @@ const resolveBrand = async (name) => {
 
 const resolveCategory = async (name, brandId) => {
   if (!name) return null;
+
+  const brand = await Brand.findById(brandId).select("name");
+  if (!brand) {
+    throw new Error("Brand not found while resolving category");
+  }
+
+  if (!validateCategoryForBrand(brand.name, name)) {
+    throw new Error(`Category "${name}" is not allowed for ${brand.name}`);
+  }
 
   let category = await Category.findOne({ name, brand_id: brandId });
   if (!category) {
@@ -267,9 +326,11 @@ console.log("FILES FULL:", req.files);
     category_id: category?._id || null,
     price: value.price,
     short_description: value.shortDescription,
+    featured_image: imageUrls[0] || null,
     specifications: value.specifications,
     gallery_images: imageUrls,
     tco_items: value.tcoItems,
+    roi_items: value.roiItems,
     is_active: value.isActive,
     is_new_launch: value.isNewLaunch,
     is_bestseller: value.isBestseller,
@@ -285,6 +346,11 @@ console.log("FILES FULL:", req.files);
 // UPDATE
 export const updateProduct = asyncHandler(async (req, res) => {
   const normalizedBody = normalizeMultipartBody(req.body);
+  const existingProduct = await Product.findById(req.params.id).populate("brand_id", "name");
+
+  if (!existingProduct) {
+    return fail(res, "NOT_FOUND", "Product not found", null, 404);
+  }
 
   const { error, value } = productUpdateSchema.validate(normalizedBody, {
     abortEarly: false,
@@ -303,12 +369,26 @@ export const updateProduct = asyncHandler(async (req, res) => {
     update.brand_id = (await resolveBrand(value.brand))._id;
   }
 
+  const effectiveBrandName = value.brand || existingProduct.brand_id?.name;
+  if (
+    effectiveBrandName &&
+    "category" in value &&
+    !validateCategoryForBrand(effectiveBrandName, value.category)
+  ) {
+    return fail(
+      res,
+      "VALIDATION_ERROR",
+      `Category "${value.category}" is not allowed for ${effectiveBrandName}`,
+      null,
+      400
+    );
+  }
+
   if ("category" in value) {
-    const product = await Product.findById(req.params.id);
     update.category_id = value.category
       ? (await resolveCategory(
           value.category,
-          update.brand_id || product.brand_id
+          update.brand_id || existingProduct.brand_id._id
         ))._id
       : null;
   }
@@ -318,6 +398,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
     update.short_description = value.shortDescription;
   if ("specifications" in value) update.specifications = value.specifications;
   if ("tcoItems" in value) update.tco_items = value.tcoItems;
+  if ("roiItems" in value) update.roi_items = value.roiItems;
 
   if ("isActive" in value) update.is_active = value.isActive;
   if ("isNewLaunch" in value) update.is_new_launch = value.isNewLaunch;
@@ -330,6 +411,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
   if (req.files?.images?.length) {
     update.gallery_images = req.files.images.map((f) => f.path);
+    update.featured_image = req.files.images[0]?.path || existingProduct.featured_image || null;
   }
 
 if (req.files?.brochure?.[0]) {
@@ -348,8 +430,6 @@ update.brochure_url = "/" + targetPath.replace(/\\/g, "/");
   const product = await Product.findByIdAndUpdate(req.params.id, update, {
     new: true,
   });
-
-  if (!product) return fail(res, "NOT_FOUND", "Product not found", null, 404);
   return ok(res, mapProduct(product));
 });
 

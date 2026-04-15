@@ -15,6 +15,20 @@ required: true,
 },
 { _id: false }
 );
+
+const RoiItemSchema = new mongoose.Schema(
+{
+key: { type: String, required: true },
+label: { type: String, required: true },
+value: { type: Number, required: true },
+unit: {
+type: String,
+enum: ["monthly", "yearly", "one-time"],
+required: true,
+},
+},
+{ _id: false }
+);
 const ProductSchema = new mongoose.Schema(
   {
     brand_id: { type: mongoose.Schema.Types.ObjectId, ref: "Brand", required: true, index: true },
@@ -32,6 +46,7 @@ const ProductSchema = new mongoose.Schema(
       default: {},
     },
     tco_items: { type: [TcoItemSchema], default: [] },
+    roi_items: { type: [RoiItemSchema], default: [] },
     key_features: { type: [String], default: [] },
     applications: { type: [String], default: [] },
     is_active: { type: Boolean, default: true, index: true },

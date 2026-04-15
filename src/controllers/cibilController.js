@@ -21,7 +21,7 @@ export const createCibilPaymentOrder = asyncHandler(async (req, res) => {
   const { error, value } = createOrderSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
   if (error) throw error;
 
-  const amount = Math.round(Number(process.env.CIBIL_CHECK_AMOUNT_INR || 99) * 100); // paise
+  const amount = 100; // Testing only: charge Rs. 1
   const rzp = getRazorpayClient();
 
   const order = await rzp.orders.create({
@@ -29,6 +29,7 @@ export const createCibilPaymentOrder = asyncHandler(async (req, res) => {
     currency: "INR",
     receipt: `cibil_${Date.now()}`,
     notes: { purpose: "cibil_check", mobile: value.mobile },
+    payment_capture: 0,
   });
 
   const payment = await Payment.create({
@@ -80,9 +81,12 @@ export const verifyCibilPaymentAndCheck = asyncHandler(async (req, res) => {
   const expected = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET).update(body).digest("hex");
   if (expected !== value.razorpay_signature) return fail(res, "UNAUTHORIZED", "Invalid Razorpay signature", null, 401);
 
+  const rzp = getRazorpayClient();
+  const razorpayPayment = await rzp.payments.fetch(value.razorpay_payment_id);
+
   payment.razorpay_payment_id = value.razorpay_payment_id;
   payment.razorpay_signature = value.razorpay_signature;
-  payment.status = "paid";
+  payment.status = "authorized";
   await payment.save();
 
   // Call Surepass
@@ -99,9 +103,42 @@ export const verifyCibilPaymentAndCheck = asyncHandler(async (req, res) => {
   try {
     resp = await sp.post(endpoint, payload);
   } catch (e) {
-    // mark failed but keep payment as paid
     const details = e.response?.data || { message: e.message };
-    return fail(res, "SUREPASS_ERROR", "CIBIL provider error", details, 502);
+    payment.status = razorpayPayment.status === "captured" ? "refunded" : "provider_failed";
+    payment.provider_error = details;
+
+    if (razorpayPayment.status === "captured") {
+      try {
+        const refund = await rzp.payments.refund(value.razorpay_payment_id, {
+          amount: razorpayPayment.amount,
+          notes: {
+            purpose: "cibil_provider_failed",
+            reason: "Surepass call failed",
+          },
+        });
+        payment.refund_id = refund.id;
+      } catch (refundError) {
+        payment.status = "provider_failed";
+        payment.provider_error = {
+          ...details,
+          refund_error: refundError?.error?.description || refundError.message,
+        };
+      }
+    }
+
+    await payment.save();
+    return fail(
+      res,
+      "SUREPASS_ERROR",
+      "CIBIL provider error. Payment was not captured, and any captured amount is being refunded.",
+      payment.provider_error || details,
+      502
+    );
+  }
+
+  const latestPayment = await rzp.payments.fetch(value.razorpay_payment_id);
+  if (latestPayment.status !== "captured") {
+    await rzp.payments.capture(value.razorpay_payment_id, latestPayment.amount, latestPayment.currency);
   }
 
   // NOTE: Surepass response shape differs by plan. We store raw and try to extract score safely.
@@ -127,6 +164,10 @@ export const verifyCibilPaymentAndCheck = asyncHandler(async (req, res) => {
     payment_id: payment._id,
     checked_at: new Date(),
   });
+
+  payment.status = "paid";
+  payment.provider_error = null;
+  await payment.save();
 
   return ok(res, {
     id: check._id,

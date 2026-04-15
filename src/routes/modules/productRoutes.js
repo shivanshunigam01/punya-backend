@@ -15,6 +15,7 @@ const router = Router();
 /* ========= PUBLIC ========= */
 router.get("/", listProducts);
 router.get("/compare", compareProducts);
+router.get("/id/:id", getProductById);
 router.get("/slug/:slug", getProductBySlug);
 
 /* ========= ADMIN ========= */

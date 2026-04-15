@@ -34,4 +34,22 @@ export const rateLimiters = {
     standardHeaders: "draft-7",
     legacyHeaders: false,
   }),
+
+  cibilCreateOrder: rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    message: { success: false, error: { code: "RATE_LIMITED", message: "Too many CIBIL order attempts. Try again shortly." } },
+    keyGenerator: (req) => req.body?.mobile || req.ip,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+  }),
+
+  cibilVerify: rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 5,
+    message: { success: false, error: { code: "RATE_LIMITED", message: "Too many CIBIL verification attempts. Try later." } },
+    keyGenerator: (req) => req.body?.razorpay_order_id || req.body?.mobile || req.ip,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+  }),
 };

@@ -7,8 +7,8 @@ import { CibilCheck } from "../../models/CibilCheck.js";
 const r = Router();
 
 // Public (payment + verification)
-r.post("/create-order", rateLimiters.cibil, createCibilPaymentOrder);
-r.post("/verify-and-check", rateLimiters.cibil, verifyCibilPaymentAndCheck);
+r.post("/create-order", rateLimiters.cibilCreateOrder, createCibilPaymentOrder);
+r.post("/verify-and-check", rateLimiters.cibilVerify, verifyCibilPaymentAndCheck);
 
 // Admin (list + analytics)
 r.get("/", requireAuth, requireRole(["master_admin","staff"]), listCibilChecks);

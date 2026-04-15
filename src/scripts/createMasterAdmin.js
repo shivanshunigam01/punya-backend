@@ -14,8 +14,8 @@ if (existing) {
 
 await User.create({
   name: "Master Admin",
-  email: "admin@patliputra.com",
-  mobile: "9999999999",
+  email: "admin@punyaautomobiles.com",
+  mobile: "987654321",
   password: "admin123", // initial password
   role: "master_admin",
   isActive: true,

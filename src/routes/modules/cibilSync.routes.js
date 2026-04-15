@@ -5,6 +5,6 @@ import { syncCibilFromPayment } from "../../controllers/cibilSync.controller.js"
 const r = Router();
 
 // Internal sync (called after payment + cibil)
-r.post("/sync-from-payment", rateLimiters.cibil, syncCibilFromPayment);
+r.post("/sync-from-payment", syncCibilFromPayment);
 
 export default r;
