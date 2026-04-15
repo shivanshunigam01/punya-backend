@@ -15,7 +15,7 @@
 //     email: { type: String },
 //     brand: {
 //   type: String,
-//   enum: ["JCB", "Ashok Leyland", "Switch EV"],
+//   enum: ["Trucks", "Buses & Vans", "Switch EV"],
 //   required: true,
 // },
 
@@ -47,7 +47,7 @@ const dealerSchema = new mongoose.Schema(
 
     brand: {
       type: String,
-      enum: ["JCB", "Ashok Leyland", "Switch EV"],
+      enum: ["Trucks", "Buses & Vans", "Switch EV"],
       required: true,
     },
 

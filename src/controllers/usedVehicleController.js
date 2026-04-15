@@ -7,7 +7,7 @@ import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
 
 const schema = Joi.object({
-  vehicle_type: Joi.string().valid("tipper","bus","loader","jcb","pickup","lcv","trailer","other").required(),
+  vehicle_type: Joi.string().valid("tipper","bus","loader","machine","pickup","lcv","trailer","other").required(),
   brand: Joi.string().allow("", null),
   model: Joi.string().required(),
   year: Joi.number().integer().min(1950).max(2100).required(),

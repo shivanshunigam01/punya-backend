@@ -13,8 +13,8 @@ const bannerSchema = Joi.object({
   page: Joi.string()
     .valid(
       "home",
-      "jcb",
-      "ashok_leyland",
+      "trucks",
+      "buses_vans",
       "switch_ev",
       "used_vehicles",
       "finance"
