@@ -1,5 +1,4 @@
 import express from "express";
-import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import compression from "compression";
@@ -33,9 +32,6 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 /* perf */
 app.use(compression());
-
-/* cors */
-app.use(cors());
 
 app.use(morgan("dev"));
 
