@@ -25,8 +25,8 @@ const bannerSchema = Joi.object({
   subtitle: Joi.string().allow("", null),
 
   // 🔥 THIS WAS MISSING (MAIN BUG)
-  background_image: Joi.string().uri().allow(null),
-  background_video: Joi.string().uri().allow(null),
+  background_image: Joi.string().uri().allow("", null),
+  background_video: Joi.string().uri().allow("", null),
 
   overlay_opacity: Joi.number().min(0).max(100).default(40),
 

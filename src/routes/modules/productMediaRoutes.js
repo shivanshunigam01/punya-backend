@@ -1,11 +1,10 @@
 // src/routes/modules/productMediaRoutes.js
 import { Router } from "express";
 import multer from "multer";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import cloudinary from "../../config/cloudinary.js"; // ✅ INSTANCE ONLY
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 import  Product  from "../../models/Product.js";
 import { ok, fail } from "../../utils/apiResponse.js";
+import { moveUploadToDir } from "../../utils/localUploads.js";
 
 const router = Router();
 
@@ -13,15 +12,7 @@ const router = Router();
    IMAGE UPLOAD (GALLERY)
    ========================= */
 
-const imageStorage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "patliputra/products/images",
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
-  },
-});
-
-const uploadImages = multer({ storage: imageStorage });
+const uploadImages = multer({ dest: "uploads/tmp" });
 
 router.post(
   "/:id/images",
@@ -32,8 +23,13 @@ router.post(
     const product = await Product.findById(req.params.id);
     if (!product) return fail(res, "NOT_FOUND", "Product not found", null, 404);
 
-    const urls = req.files.map(f => f.path);
+    const urls = req.files.map((file) =>
+      moveUploadToDir(file, "products", "images")
+    );
     product.gallery_images.push(...urls);
+    if (!product.featured_image && urls[0]) {
+      product.featured_image = urls[0];
+    }
     await product.save();
 
     return ok(res, { gallery_images: product.gallery_images });
@@ -44,16 +40,7 @@ router.post(
    BROCHURE UPLOAD (PDF)
    ========================= */
 
-const brochureStorage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "patliputra/products/brochures",
-    resource_type: "raw",
-    allowed_formats: ["pdf"],
-  },
-});
-
-const uploadBrochure = multer({ storage: brochureStorage });
+const uploadBrochure = multer({ dest: "uploads/tmp" });
 
 router.post(
   "/:id/brochure",
@@ -64,7 +51,7 @@ router.post(
     const product = await Product.findById(req.params.id);
     if (!product) return fail(res, "NOT_FOUND", "Product not found", null, 404);
 
-    product.brochure_url = req.file.path;
+    product.brochure_url = moveUploadToDir(req.file, "products", "brochures");
     product.brochure_updated_at = new Date();
     await product.save();
 

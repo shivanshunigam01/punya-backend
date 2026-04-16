@@ -3,8 +3,7 @@ import { UsedVehicle } from "../models/UsedVehicle.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ok, created, fail } from "../utils/apiResponse.js";
 import { parsePagination } from "../utils/pagination.js";
-import cloudinary from "../config/cloudinary.js";
-import fs from "fs";
+import { moveUploadToDir } from "../utils/localUploads.js";
 
 const schema = Joi.object({
   vehicle_type: Joi.string().valid("tipper","bus","loader","machine","pickup","lcv","trailer","other").required(),
@@ -99,29 +98,22 @@ export const createUsedVehicle = asyncHandler(async (req, res) => {
   const images = req.files?.images || [];
   const inspection = req.files?.inspectionReport?.[0] || null;
 
-  // ✅ Upload images to Cloudinary
+  // Store images on the server
   const galleryImages = [];
 
   for (const file of images) {
-    const result = await cloudinary.uploader.upload(file.path, {
-      folder: "used-vehicles",
-    });
-
-    galleryImages.push(result.secure_url);
-    fs.unlinkSync(file.path);
+    galleryImages.push(moveUploadToDir(file, "used-vehicles", "images"));
   }
 
-  // ✅ Upload inspection PDF
+  // Store inspection PDF on the server
   let inspectionReportUrl = null;
 
   if (inspection) {
-    const result = await cloudinary.uploader.upload(inspection.path, {
-      folder: "used-vehicles/inspection-reports",
-      resource_type: "raw", // 🔥 IMPORTANT FOR PDF
-    });
-
-    inspectionReportUrl = result.secure_url;
-    fs.unlinkSync(inspection.path);
+    inspectionReportUrl = moveUploadToDir(
+      inspection,
+      "used-vehicles",
+      "inspection-reports"
+    );
   }
 
   // ✅ Parse condition_report safely
@@ -175,32 +167,25 @@ export const updateUsedVehicle = asyncHandler(async (req, res) => {
   const images = req.files?.images || [];
   const inspection = req.files?.inspectionReport?.[0] || null;
 
-  // ✅ Upload images to Cloudinary
+  // Store replacement images on the server
   if (images.length) {
     const galleryImages = [];
 
     for (const file of images) {
-      const result = await cloudinary.uploader.upload(file.path, {
-        folder: "used-vehicles",
-      });
-
-      galleryImages.push(result.secure_url);
-      fs.unlinkSync(file.path);
+      galleryImages.push(moveUploadToDir(file, "used-vehicles", "images"));
     }
 
     body.gallery_images = galleryImages;
     body.featured_image = galleryImages[0];
   }
 
-  // ✅ Upload inspection PDF
+  // Store replacement inspection report on the server
   if (inspection) {
-    const result = await cloudinary.uploader.upload(inspection.path, {
-      folder: "used-vehicles/inspection-reports",
-      resource_type: "raw", // 🔥 REQUIRED for PDF
-    });
-
-    body.inspection_report_url = result.secure_url;
-    fs.unlinkSync(inspection.path);
+    body.inspection_report_url = moveUploadToDir(
+      inspection,
+      "used-vehicles",
+      "inspection-reports"
+    );
   }
 
   const { error, value } = schema.validate(body, {
