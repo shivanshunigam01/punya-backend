@@ -10,6 +10,15 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ok, created, fail } from "../utils/apiResponse.js";
 import { parsePagination } from "../utils/pagination.js";
 
+/** 10-digit mobile for Surepass (matches payment.routes.js verify-cibil). */
+function normalizeInrMobile(mobile) {
+  const digits = String(mobile || "").replace(/\D/g, "");
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+}
+
+/** Default: Experian fetch-report used elsewhere in this repo; old /v1/credit-score/cibil often 404s on kyc-api.surepass.io */
+const DEFAULT_SUREPASS_CIBIL_ENDPOINT = "/api/v1/credit-report-experian/fetch-report";
+
 const createOrderSchema = Joi.object({
   customer_name: Joi.string().required(),
   mobile: Joi.string().pattern(/^(\+91)?[6-9]\d{9}$/).required(),
@@ -73,9 +82,27 @@ export const verifyCibilPaymentAndCheck = asyncHandler(async (req, res) => {
   const payment = await Payment.findOne({ razorpay_order_id: value.razorpay_order_id });
   if (!payment) return fail(res, "NOT_FOUND", "Payment order not found", null, 404);
   if (payment.status === "paid") {
-    // already checked
     const existing = await CibilCheck.findOne({ payment_id: payment._id }).sort({ checked_at: -1 });
-    return ok(res, existing || { message: "Payment already verified" });
+    if (!existing) {
+      return fail(
+        res,
+        "DATA_MISSING",
+        "This payment is marked complete but no CIBIL record is linked. Please contact support with your Payment ID.",
+        null,
+        409
+      );
+    }
+    return ok(res, {
+      id: existing._id,
+      customer_name: existing.customer_name,
+      mobile: existing.mobile,
+      pan: existing.pan_masked,
+      dob: existing.dob,
+      cibil_score: existing.cibil_score,
+      score_band: existing.score_band,
+      checked_at: existing.checked_at,
+      linked_lead_id: existing.linked_lead_id,
+    });
   }
 
   const body = `${value.razorpay_order_id}|${value.razorpay_payment_id}`;
@@ -90,14 +117,15 @@ export const verifyCibilPaymentAndCheck = asyncHandler(async (req, res) => {
   payment.status = "authorized";
   await payment.save();
 
-  // Call Surepass
   const sp = surepassClient();
-  const endpoint = process.env.SUREPASS_CIBIL_ENDPOINT || "/v1/credit-score/cibil";
+  const endpoint = (process.env.SUREPASS_CIBIL_ENDPOINT || "").trim() || DEFAULT_SUREPASS_CIBIL_ENDPOINT;
+  const mobile10 = normalizeInrMobile(payment.mobile);
+  const panUpper = String(payment.metadata?.pan || "").toUpperCase().trim();
   const payload = {
     name: payment.customer_name,
-    mobile: payment.mobile,
-    pan: payment.metadata?.pan,
-    dob: payment.metadata?.dob,
+    consent: "Y",
+    mobile: mobile10,
+    pan: panUpper,
   };
 
   let resp;
@@ -170,13 +198,16 @@ export const verifyCibilPaymentAndCheck = asyncHandler(async (req, res) => {
     }
   }
 
-  // NOTE: Surepass response shape differs by plan. We store raw and try to extract score safely.
   const raw = resp.data;
+  const inner = raw?.data ?? raw;
   const score =
+    inner?.credit_score ??
+    inner?.score ??
+    inner?.cibil_score ??
     raw?.data?.score ??
-    raw?.score ??
-    raw?.cibil_score ??
+    raw?.data?.credit_score ??
     raw?.data?.cibil_score ??
+    raw?.score ??
     null;
 
   const panMasked = String(payment.metadata?.pan || "").replace(/^(.{2}).*(.{2})$/, "$1******$2");
