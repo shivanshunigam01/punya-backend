@@ -1,19 +1,16 @@
 import Joi from "joi";
+import mongoose from "mongoose";
 import { nanoid } from "nanoid";
 import { Lead } from "../models/Lead.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ok, created, fail } from "../utils/apiResponse.js";
 import { parsePagination } from "../utils/pagination.js";
 
-function makeLeadNumber() {
-  const n = Math.floor(10000 + Math.random() * 89999);
-  return `PVS-${n}`;
-}
-
 const createSchema = Joi.object({
   source: Joi.string().required(),
   source_page: Joi.string().allow("", null),
   source_product_id: Joi.string().allow("", null),
+  source_product_name: Joi.string().allow("", null),
   customer_name: Joi.string().required(),
   customer_mobile: Joi.string().pattern(/^(\+91)?[6-9]\d{9}$/).required(),
   customer_email: Joi.string().email().allow("", null),
@@ -26,59 +23,59 @@ const createSchema = Joi.object({
   utm_source: Joi.string().allow("", null),
   utm_medium: Joi.string().allow("", null),
   utm_campaign: Joi.string().allow("", null),
+  note: Joi.string().allow("", null),
 });
 
-export const createLead = async (req, res) => {
-  try {
-    const {
-      source,
-      source_page,
-      customer_name,
-      customer_mobile,
-      customer_district,
-      note,
-      priority,
-    } = req.body;
-
-    if (!source || !customer_name || !customer_mobile) {
-      return res.status(400).json({
-        success: false,
-        error: "Required fields missing",
-      });
-    }
-
-    const lead = await Lead.create({
-      lead_number: `LD-${Date.now()}`,
-      source,
-      source_page,
-      customer_name,
-      customer_mobile,
-      customer_district,
-      priority: priority || "medium",
-
-      notes: note
-        ? [
-            {
-              note,
-              created_by: null, // public lead
-            },
-          ]
-        : [],
-    });
-
-    res.json({
-      success: true,
-      id: lead._id,
-      lead_number: lead.lead_number,
-    });
-  } catch (err) {
-    console.error("Create lead error:", err);
-    res.status(500).json({
-      success: false,
-      error: "Failed to create lead",
-    });
+export const createLead = asyncHandler(async (req, res) => {
+  const body = { ...req.body };
+  if (body.customer_mobile != null) {
+    body.customer_mobile = String(body.customer_mobile).replace(/\D/g, "").slice(-10);
   }
-};
+  const { error, value } = createSchema.validate(body, { abortEarly: false, stripUnknown: true });
+  if (error) throw error;
+
+  const sourceProductId =
+    value.source_product_id && mongoose.Types.ObjectId.isValid(value.source_product_id)
+      ? value.source_product_id
+      : undefined;
+
+  const notes = [];
+  if (value.note && String(value.note).trim()) {
+    notes.push({ note: String(value.note).trim(), created_by: null });
+  }
+
+  const lead = await Lead.create({
+    lead_number: `LD-${Date.now()}-${nanoid(6)}`,
+    source: value.source,
+    source_page: value.source_page || undefined,
+    source_product_id: sourceProductId,
+    source_product_name: value.source_product_name || undefined,
+    customer_name: value.customer_name,
+    customer_mobile: value.customer_mobile,
+    customer_email: value.customer_email?.trim() || undefined,
+    customer_district: value.customer_district || undefined,
+    customer_address: value.customer_address || undefined,
+    brand_interest: value.brand_interest || undefined,
+    product_interest: value.product_interest || undefined,
+    vehicle_type_interest: value.vehicle_type_interest || undefined,
+    budget_range: value.budget_range || undefined,
+    utm_source: value.utm_source || undefined,
+    utm_medium: value.utm_medium || undefined,
+    utm_campaign: value.utm_campaign || undefined,
+    priority: "medium",
+    notes,
+    client_meta: {
+      ip: req.clientInfo?.ip,
+      userAgent: req.clientInfo?.userAgent,
+      referrer: req.clientInfo?.referrer,
+    },
+  });
+
+  return created(res, {
+    id: lead._id.toString(),
+    lead_number: lead.lead_number,
+  });
+});
 
 export const listLeads = asyncHandler(async (req, res) => {
   const {
@@ -102,6 +99,8 @@ export const listLeads = asyncHandler(async (req, res) => {
     q.$or = [
       { customer_name: { $regex: search, $options: "i" } },
       { customer_mobile: { $regex: search, $options: "i" } },
+      { customer_email: { $regex: search, $options: "i" } },
+      { product_interest: { $regex: search, $options: "i" } },
       { lead_number: { $regex: search, $options: "i" } },
     ];
   }

@@ -1,11 +1,15 @@
 import rateLimit from "express-rate-limit";
 
+/** Stops ERR_ERL_UNEXPECTED_X_FORWARDED_FOR if a proxy adds X-Forwarded-For before trust proxy is applied. */
+const rlValidate = { xForwardedForHeader: false };
+
 export const rateLimiters = {
   general: rateLimit({
     windowMs: 60 * 1000,
     limit: 100,
     standardHeaders: "draft-7",
     legacyHeaders: false,
+    validate: rlValidate,
   }),
 
   leads: rateLimit({
@@ -15,6 +19,7 @@ export const rateLimiters = {
     keyGenerator: (req) => req.body?.customer_mobile || req.ip,
     standardHeaders: "draft-7",
     legacyHeaders: false,
+    validate: rlValidate,
   }),
 
   contact: rateLimit({
@@ -24,6 +29,7 @@ export const rateLimiters = {
     keyGenerator: (req) => req.ip,
     standardHeaders: "draft-7",
     legacyHeaders: false,
+    validate: rlValidate,
   }),
 
   cibil: rateLimit({
@@ -33,6 +39,7 @@ export const rateLimiters = {
     keyGenerator: (req) => req.body?.mobile || req.ip,
     standardHeaders: "draft-7",
     legacyHeaders: false,
+    validate: rlValidate,
   }),
 
   cibilCreateOrder: rateLimit({
@@ -42,6 +49,7 @@ export const rateLimiters = {
     keyGenerator: (req) => req.body?.mobile || req.ip,
     standardHeaders: "draft-7",
     legacyHeaders: false,
+    validate: rlValidate,
   }),
 
   cibilVerify: rateLimit({
@@ -51,5 +59,6 @@ export const rateLimiters = {
     keyGenerator: (req) => req.body?.razorpay_order_id || req.body?.mobile || req.ip,
     standardHeaders: "draft-7",
     legacyHeaders: false,
+    validate: rlValidate,
   }),
 };

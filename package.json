@@ -1,7 +1,7 @@
 {
   "name": "patliputra-virtual-showroom-backend",
   "version": "1.0.0",
-  "description": "Production-ready Node.js + Express + MongoDB backend for Patliputra Virtual Showroom (Admin APIs + Public APIs + Razorpay + Cloudinary + Surepass CIBIL).",
+  "description": "Production-ready Node.js + Express + MongoDB backend for Punya Auto Wheels (Admin APIs + Public APIs + Razorpay + Cloudinary + Surepass CIBIL).",
   "main": "server.js",
   "type": "module",
   "scripts": {

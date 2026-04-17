@@ -31,6 +31,8 @@ export const initCloudinary = () => {
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
+  // "Invalid Signature" from Cloudinary = CLOUDINARY_API_SECRET on this host must match
+  // the secret for this cloud in the Cloudinary dashboard (copy/paste, no stray spaces).
 
   console.log("✅ Cloudinary initialized");
 };

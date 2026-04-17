@@ -20,7 +20,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.set("trust proxy", 1);
+// Required when running behind nginx/Caddy/Cloudflare so req.ip and express-rate-limit
+// agree with X-Forwarded-For. Set TRUST_PROXY=0 for a bare Node listen with no proxy.
+const trustProxy = process.env.TRUST_PROXY;
+if (trustProxy === "0" || trustProxy === "false") {
+  app.set("trust proxy", false);
+} else if (trustProxy != null && trustProxy !== "") {
+  const n = Number(trustProxy);
+  app.set("trust proxy", Number.isFinite(n) ? n : true);
+} else {
+  app.set("trust proxy", true);
+}
 
 /* security */
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
@@ -52,7 +62,7 @@ app.use(rateLimiters.general);
 app.get("/", (req, res) => {
   res.json({
     status: "ok",
-    service: "Patliputra Showroom API",
+    service: "Punya Auto Wheels API",
     timestamp: new Date().toISOString(),
   });
 });

@@ -24,9 +24,13 @@ const bannerSchema = Joi.object({
   title: Joi.string().required(),
   subtitle: Joi.string().allow("", null),
 
-  // 🔥 THIS WAS MISSING (MAIN BUG)
-  background_image: Joi.string().uri().allow("", null),
-  background_video: Joi.string().uri().allow("", null),
+  // Empty string while saving before image upload; plain .uri() rejects "" even with .allow("")
+  background_image: Joi.alternatives()
+    .try(Joi.string().uri(), Joi.string().valid(""), Joi.valid(null))
+    .optional(),
+  background_video: Joi.alternatives()
+    .try(Joi.string().uri(), Joi.string().valid(""), Joi.valid(null))
+    .optional(),
 
   overlay_opacity: Joi.number().min(0).max(100).default(40),
 
