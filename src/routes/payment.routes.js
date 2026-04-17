@@ -190,8 +190,14 @@ router.post("/razorpay/verify-cibil", async (req, res) => {
        🔄 Sync to CIBIL module
        (NON-BLOCKING)
     ========================= */
+    const internalBase = (
+      process.env.INTERNAL_API_BASE_URL ||
+      process.env.PUBLIC_API_URL ||
+      `http://127.0.0.1:${process.env.PORT || 5000}`
+    ).replace(/\/$/, "");
+
     axios
-      .post("http://localhost:5000/cibil/sync-from-payment", {
+      .post(`${internalBase}/cibil/sync-from-payment`, {
         customer_name: name,
         mobile: mobileStr,
         pan: panStr,

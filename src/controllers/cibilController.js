@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import Joi from "joi";
+import mongoose from "mongoose";
 import { getRazorpayClient } from "../config/razorpay.js";
 import { surepassClient } from "../config/surepass.js";
 import { Payment } from "../models/Payment.js";
@@ -104,10 +105,11 @@ export const verifyCibilPaymentAndCheck = asyncHandler(async (req, res) => {
     resp = await sp.post(endpoint, payload);
   } catch (e) {
     const details = e.response?.data || { message: e.message };
-    payment.status = razorpayPayment.status === "captured" ? "refunded" : "provider_failed";
+    const wasCaptured = razorpayPayment.status === "captured";
+    payment.status = wasCaptured ? "refunded" : "provider_failed";
     payment.provider_error = details;
 
-    if (razorpayPayment.status === "captured") {
+    if (wasCaptured) {
       try {
         const refund = await rzp.payments.refund(value.razorpay_payment_id, {
           amount: razorpayPayment.amount,
@@ -127,18 +129,45 @@ export const verifyCibilPaymentAndCheck = asyncHandler(async (req, res) => {
     }
 
     await payment.save();
-    return fail(
-      res,
-      "SUREPASS_ERROR",
-      "CIBIL provider error. Payment was not captured, and any captured amount is being refunded.",
-      payment.provider_error || details,
-      502
-    );
+    const userMessage = wasCaptured
+      ? "CIBIL check could not be completed. We have initiated a refund to your original payment method."
+      : "CIBIL check could not be completed. No charge was taken by us; any bank pre-authorization will drop off automatically within a few days.";
+    return fail(res, "SUREPASS_ERROR", userMessage, payment.provider_error || details, 502);
   }
 
-  const latestPayment = await rzp.payments.fetch(value.razorpay_payment_id);
+  let latestPayment = await rzp.payments.fetch(value.razorpay_payment_id);
   if (latestPayment.status !== "captured") {
-    await rzp.payments.capture(value.razorpay_payment_id, latestPayment.amount, latestPayment.currency);
+    const captureAmount = Number(latestPayment.amount);
+    if (!Number.isFinite(captureAmount) || captureAmount <= 0) {
+      payment.status = "capture_failed";
+      payment.provider_error = { stage: "capture_prepare", payment: latestPayment };
+      await payment.save();
+      return fail(
+        res,
+        "CAPTURE_ERROR",
+        "We could not confirm the paid amount with Razorpay. Please contact support with your payment reference.",
+        null,
+        502
+      );
+    }
+    try {
+      await rzp.payments.capture(value.razorpay_payment_id, captureAmount, latestPayment.currency);
+    } catch (capErr) {
+      latestPayment = await rzp.payments.fetch(value.razorpay_payment_id);
+      if (latestPayment.status !== "captured") {
+        payment.status = "capture_failed";
+        payment.provider_error = {
+          stage: "razorpay_capture",
+          razorpay: capErr?.error || capErr,
+        };
+        await payment.save();
+        const desc =
+          capErr?.error?.description ||
+          capErr?.error?.reason ||
+          "Payment could not be settled after the CIBIL check.";
+        return fail(res, "CAPTURE_ERROR", desc, capErr?.error, capErr?.statusCode || 502);
+      }
+    }
   }
 
   // NOTE: Surepass response shape differs by plan. We store raw and try to extract score safely.
@@ -203,27 +232,44 @@ export const listCibilChecks = asyncHandler(async (req, res) => {
   ]);
 
   const mapped = items.map(c => ({
-  id: c._id.toString(),
+    id: c._id.toString(),
+    customerName: c.customer_name,
+    mobile: c.mobile,
+    panNumber: c.pan_masked,
+    dateOfBirth: c.dob,
+    score: c.cibil_score ?? 0,
+    scoreBand: c.score_band
+      ? c.score_band.charAt(0).toUpperCase() + c.score_band.slice(1)
+      : "Unknown",
+    checkedAt: c.checked_at,
+  }));
 
-  customerName: c.customer_name,
-  mobile: c.mobile,
-
-  panNumber: c.pan_masked,        // already masked
-  dateOfBirth: c.dob,
-
-  score: c.cibil_score ?? 0,
-  scoreBand: c.score_band
-    ? c.score_band.charAt(0).toUpperCase() + c.score_band.slice(1)
-    : "Unknown",
-
-  checkedAt: c.checked_at,
-}));
-
-return ok(res, mapped, { total, page, per_page });
+  return ok(res, mapped, { total, page, per_page });
 
 });
 
 export const cibilAnalytics = asyncHandler(async (_req, res) => {
   const total = await CibilCheck.countDocuments();
   return ok(res, { total_cibil_checks: total });
+});
+
+export const getCibilCheckById = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return fail(res, "BAD_REQUEST", "Invalid CIBIL check id", null, 400);
+  }
+  const check = await CibilCheck.findById(req.params.id);
+  if (!check) return fail(res, "NOT_FOUND", "CIBIL check not found", null, 404);
+
+  return ok(res, {
+    id: check._id.toString(),
+    customerName: check.customer_name,
+    mobile: check.mobile,
+    panNumber: check.pan_masked,
+    dateOfBirth: check.dob,
+    score: check.cibil_score ?? 0,
+    scoreBand: check.score_band
+      ? check.score_band.charAt(0).toUpperCase() + check.score_band.slice(1)
+      : "Unknown",
+    checkedAt: check.checked_at,
+  });
 });
