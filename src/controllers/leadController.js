@@ -23,6 +23,13 @@ const createSchema = Joi.object({
   utm_source: Joi.string().allow("", null),
   utm_medium: Joi.string().allow("", null),
   utm_campaign: Joi.string().allow("", null),
+  compared_product_ids: Joi.array().items(Joi.string()).default([]),
+  compared_product_names: Joi.array().items(Joi.string()).default([]),
+  cibil_checked: Joi.boolean().default(false),
+  cibil_score: Joi.number().min(0).max(900).allow(null),
+  cibil_score_band: Joi.string().allow("", null),
+  is_strong_lead: Joi.boolean().default(false),
+  status: Joi.string().valid("new", "contacted", "qualified", "converted", "lost", "C0", "C1", "C2", "C3").allow("", null),
   note: Joi.string().allow("", null),
 });
 
@@ -38,6 +45,12 @@ export const createLead = asyncHandler(async (req, res) => {
     value.source_product_id && mongoose.Types.ObjectId.isValid(value.source_product_id)
       ? value.source_product_id
       : undefined;
+  const comparedProductIds = (value.compared_product_ids || []).filter((id) =>
+    mongoose.Types.ObjectId.isValid(id)
+  );
+  const isCompareLead = String(value.source || "").toLowerCase().includes("compare");
+  const shouldBeStrongLead = Boolean(value.is_strong_lead || isCompareLead);
+  const leadStatus = value.status || (shouldBeStrongLead ? "C0" : "new");
 
   const notes = [];
   if (value.note && String(value.note).trim()) {
@@ -62,6 +75,13 @@ export const createLead = asyncHandler(async (req, res) => {
     utm_source: value.utm_source || undefined,
     utm_medium: value.utm_medium || undefined,
     utm_campaign: value.utm_campaign || undefined,
+    compared_product_ids: comparedProductIds,
+    compared_product_names: (value.compared_product_names || []).filter(Boolean),
+    cibil_checked: Boolean(value.cibil_checked),
+    cibil_score: value.cibil_score ?? undefined,
+    cibil_score_band: value.cibil_score_band || undefined,
+    is_strong_lead: shouldBeStrongLead,
+    status: leadStatus,
     priority: "medium",
     notes,
     client_meta: {
@@ -120,6 +140,11 @@ const mapped = items.map(l => ({
 
   source: l.source,
   status: l.status,
+  isStrongLead: Boolean(l.is_strong_lead),
+  cibilChecked: Boolean(l.cibil_checked),
+  cibilScore: l.cibil_score,
+  cibilScoreBand: l.cibil_score_band,
+  comparedProductNames: l.compared_product_names || [],
 
   notes: l.notes.map(n => n.note),
 
@@ -154,6 +179,11 @@ export const getLead = asyncHandler(async (req, res) => {
 
     source: l.source,
     status: l.status,
+  isStrongLead: Boolean(l.is_strong_lead),
+  cibilChecked: Boolean(l.cibil_checked),
+  cibilScore: l.cibil_score,
+  cibilScoreBand: l.cibil_score_band,
+  comparedProductNames: l.compared_product_names || [],
 
     createdAt: l.created_at,
 
@@ -177,7 +207,10 @@ export const updateLead = asyncHandler(async (req, res) => {
 });
 
 export const patchLeadStatus = asyncHandler(async (req, res) => {
-  const schema = Joi.object({ status: Joi.string().required(), note: Joi.string().allow("", null) });
+  const schema = Joi.object({
+    status: Joi.string().valid("new", "contacted", "qualified", "converted", "lost", "C0", "C1", "C2", "C3").required(),
+    note: Joi.string().allow("", null),
+  });
   const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
   if (error) throw error;
 
@@ -219,6 +252,11 @@ export const assignLead = asyncHandler(async (req, res) => {
 
   source: lead.source,
   status: lead.status,
+  isStrongLead: Boolean(lead.is_strong_lead),
+  cibilChecked: Boolean(lead.cibil_checked),
+  cibilScore: lead.cibil_score,
+  cibilScoreBand: lead.cibil_score_band,
+  comparedProductNames: lead.compared_product_names || [],
 
   notes: lead.notes.map(n => n.note),
 

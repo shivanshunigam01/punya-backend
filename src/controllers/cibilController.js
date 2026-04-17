@@ -225,6 +225,16 @@ export const verifyCibilPaymentAndCheck = asyncHandler(async (req, res) => {
     checked_at: new Date(),
   });
 
+  if (payment.metadata?.linked_lead_id && mongoose.Types.ObjectId.isValid(payment.metadata.linked_lead_id)) {
+    await Lead.findByIdAndUpdate(payment.metadata.linked_lead_id, {
+      $set: {
+        cibil_checked: true,
+        cibil_score: check.cibil_score,
+        cibil_score_band: check.score_band,
+      },
+    });
+  }
+
   payment.status = "paid";
   payment.provider_error = null;
   await payment.save();

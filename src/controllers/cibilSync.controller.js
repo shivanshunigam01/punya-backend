@@ -36,7 +36,9 @@ export const syncCibilFromPayment = async (req, res) => {
         ? undefined
         : Number(cibil_score);
     const resolvedScore =
-      typeof numericScore === "number" && !Number.isNaN(numericScore) ? numericScore : undefined;
+      typeof numericScore === "number" && !Number.isNaN(numericScore)
+        ? numericScore
+        : undefined;
 
     const record = await CibilCheck.create({
       customer_name,
