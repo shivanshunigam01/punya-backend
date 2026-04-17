@@ -1,5 +1,5 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import Product from "../models/Product.js";
@@ -7,185 +7,102 @@ import { Brand } from "../models/Brand.js";
 import { Category } from "../models/Category.js";
 import { MediaFile } from "../models/MediaFile.js";
 import { makeSlug } from "../utils/slug.js";
+import { initCloudinary } from "../config/cloudinary.js";
+import cloudinary from "../config/cloudinary.js";
 
 dotenv.config({ path: path.join(process.cwd(), ".env") });
 
-const sourceDir = "C:/Users/Admin/Downloads/all images";
-const targetDir = path.join(process.cwd(), "uploads", "imported", "products");
+const sourceDir =
+  process.env.PRODUCT_IMAGES_DIR || "C:/Users/Shivanshu/Downloads/all images";
+const allowedExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
 
-const productSeeds = [
-  {
-    name: "Tata Signa 2821.T",
-    brand: "Trucks",
-    category: "Heavy Duty",
-    shortDescription: "Heavy-duty cargo truck built for long-haul fleet and commercial transport operations.",
-    price: 2850000,
-    specifications: { Power: "200 HP", Fuel: "Diesel", GVW: "28 Ton" },
-    files: ["SIGNA-2821T.jpg"],
-  },
-  {
-    name: "Tata Signa 2823.T",
-    brand: "Trucks",
-    category: "Heavy Duty",
-    shortDescription: "Reliable heavy-duty tipper configuration for demanding business applications.",
-    price: 2925000,
-    specifications: { Power: "220 HP", Fuel: "Diesel", GVW: "28 Ton" },
-    files: ["SIGNA-2823T.jpg"],
-  },
-  {
-    name: "Tata Signa 3525.T",
-    brand: "Trucks",
-    category: "Heavy Duty",
-    shortDescription: "Built for higher payload transport and dependable long-route cargo movement.",
-    price: 3390000,
-    specifications: { Power: "250 HP", Fuel: "Diesel", GVW: "35 Ton" },
-    files: ["SIGNA-3525T.jpg"],
-  },
-  {
-    name: "Tata Signa 4021.S",
-    brand: "Trucks",
-    category: "Heavy Duty",
-    shortDescription: "A practical tractor head for logistics fleets and regional haulage.",
-    price: 3550000,
-    specifications: { Power: "210 HP", Fuel: "Diesel", GVW: "40 Ton" },
-    files: ["SIGNA-4021S.jpg"],
-  },
-  {
-    name: "Tata Signa 4025.S",
-    brand: "Trucks",
-    category: "Heavy Duty",
-    shortDescription: "Designed for fleet operators looking for stronger highway hauling performance.",
-    price: 3680000,
-    specifications: { Power: "250 HP", Fuel: "Diesel", GVW: "40 Ton" },
-    files: ["SIGNA-4025S.jpg"],
-  },
-  {
-    name: "Tata Signa 4225.T",
-    brand: "Trucks",
-    category: "Heavy Duty",
-    shortDescription: "Built for higher tonnage and heavy-load distribution requirements.",
-    price: 3820000,
-    specifications: { Power: "250 HP", Fuel: "Diesel", GVW: "42 Ton" },
-    files: ["SIGNA-4225T.jpg"],
-  },
-  {
-    name: "Tata Signa 4623.S",
-    brand: "Trucks",
-    category: "Heavy Duty",
-    shortDescription: "A modern multi-axle tractor for high-uptime transport businesses.",
-    price: 4010000,
-    specifications: { Power: "230 HP", Fuel: "Diesel", GVW: "46 Ton" },
-    files: ["signa-4623s-bnr.jpg"],
-  },
-  {
-    name: "Tata Signa 5532.S",
-    brand: "Trucks",
-    category: "Heavy Duty",
-    shortDescription: "Premium heavy-haul tractor platform for large fleet and infrastructure movement.",
-    price: 4590000,
-    specifications: { Power: "320 HP", Fuel: "Diesel", GVW: "55 Ton" },
-    files: ["Signa 5532.S-3 2.jpg"],
-  },
-  {
-    name: "Tata Ultra T.6",
+function titleFromFilename(filename) {
+  const base = path.basename(filename, path.extname(filename));
+  return base
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function inferProductGroup(filename) {
+  const name = filename.toLowerCase();
+
+  if (/(ok|used|refurb|pre[-\s]?owned|tata[\s_-]?ok)/.test(name)) {
+    return { brand: "TATA OK", category: "Used", price: 1450000, specs: { Fuel: "Diesel", Type: "Certified Used CV" } };
+  }
+  if (/(starbus|bus|school|staff|winger|van)/.test(name)) {
+    const isVan = /(winger|van)/.test(name);
+    return {
+      brand: "Buses & Vans",
+      category: isVan ? "Van" : "Bus",
+      price: isVan ? 1695000 : 2550000,
+      specs: isVan
+        ? { Fuel: "Diesel", Seating: "13 Seater" }
+        : { Fuel: "Diesel", Seating: "41 Seater" },
+    };
+  }
+  if (/(ace|intra|yodha|scv|mini|pickup|ev)/.test(name)) {
+    const isEv = /ev|electric/.test(name);
+    if (isEv) {
+      return {
+        brand: "SCV",
+        category: "Electric SCV",
+        price: 995000,
+        specs: { Fuel: "Electric", Payload: "1000 kg", Range: "150 km" },
+      };
+    }
+    const isPickup = /(pickup|intra|yodha)/.test(name);
+    return {
+      brand: "SCV",
+      category: isPickup ? "Pickup" : "Mini Truck",
+      price: isPickup ? 940000 : 615000,
+      specs: { Fuel: "Diesel", Payload: isPickup ? "1300 kg" : "750 kg" },
+    };
+  }
+
+  if (/(signa|prima|tipper|tractor|5525|5532|4623|4225|4025|3525|2823)/.test(name)) {
+    return {
+      brand: "Trucks",
+      category: "Heavy Duty",
+      price: 3650000,
+      specs: { Fuel: "Diesel", Power: "250 HP", GVW: "35 Ton" },
+    };
+  }
+  if (/(ultra|lpt|709|1916|t\.?7|t\.?16|t\.?19)/.test(name)) {
+    return {
+      brand: "Trucks",
+      category: "Medium Duty",
+      price: 2350000,
+      specs: { Fuel: "Diesel", Power: "160 HP", GVW: "19 Ton" },
+    };
+  }
+  return {
     brand: "Trucks",
     category: "Light Duty",
-    shortDescription: "Compact modern truck for city distribution and light commercial logistics.",
-    price: 1550000,
-    specifications: { Power: "100 HP", Fuel: "Diesel", GVW: "6 Ton" },
-    files: ["ultra-t6.webp"],
-  },
-  {
-    name: "Tata Ultra T.7",
-    brand: "Trucks",
-    category: "Light Duty",
-    shortDescription: "Modern light-duty truck designed for urban movement and quick turnaround operations.",
-    price: 1710000,
-    specifications: { Power: "120 HP", Fuel: "Diesel", GVW: "7 Ton" },
-    files: ["Ultra T.7.png", "ultra-7thumb.jpg"],
-  },
-  {
-    name: "Tata Ultra T.19",
-    brand: "Trucks",
-    category: "Medium Duty",
-    shortDescription: "Medium-duty truck range for higher cargo volumes and highway-ready distribution.",
-    price: 2650000,
-    specifications: { Power: "180 HP", Fuel: "Diesel", GVW: "19 Ton" },
-    files: ["Ultra T.19 Vehicle Image 3.jpg"],
-  },
-  {
-    name: "Tata LPT 709G",
-    brand: "Trucks",
-    category: "Light Duty",
-    shortDescription: "A practical LPT platform for goods transport and local cargo operations.",
-    price: 1490000,
-    specifications: { Power: "85 HP", Fuel: "Diesel", GVW: "7 Ton" },
-    files: ["LPT-709-G.jpg"],
-  },
-  {
-    name: "Tata LPT 1916",
-    brand: "Trucks",
-    category: "Medium Duty",
-    shortDescription: "Trusted medium-duty LPT vehicle for intercity and business cargo movement.",
-    price: 2380000,
-    specifications: { Power: "160 HP", Fuel: "Diesel", GVW: "19 Ton" },
-    files: ["1916-lpt.png"],
-  },
-  {
-    name: "Tata Starbus",
-    brand: "Buses & Vans",
-    category: "Bus",
-    shortDescription: "Passenger bus solution for staff, school, and route transport requirements.",
-    price: 2550000,
-    specifications: { Power: "155 HP", Fuel: "Diesel", Seating: "41 Seater" },
-    files: ["Starbus_11.jpg", "Starbus_16.jpg", "Starbus-nonac_11.png", "Starbus-nonac_11old_0.png"],
-  },
-  {
-    name: "Tata Winger",
-    brand: "Buses & Vans",
-    category: "Van",
-    shortDescription: "Efficient van platform for school, staff, and tour movement needs.",
-    price: 1680000,
-    specifications: { Power: "100 HP", Fuel: "Diesel", Seating: "13 Seater" },
-    files: ["winger-thumbnail.jpg", "winger-thumbnail_0.jpg"],
-  },
-  {
-    name: "Tata Ace EV 1000",
-    brand: "SCV",
-    category: "Electric SCV",
-    shortDescription: "Electric small commercial vehicle built for clean city deliveries and daily business use.",
-    price: 995000,
-    specifications: { Payload: "1000 kg", Fuel: "Electric", Range: "150 km" },
-    files: ["9-by-12-EV-thumb_0.jpg", "ev12-thumb.jpg", "Ultra-EV_thumb.jpg"],
-  },
-  {
-    name: "Tata Ace Pro",
-    brand: "SCV",
-    category: "Mini Truck",
-    shortDescription: "Compact last-mile cargo vehicle with multiple body-angle images for showroom presentation.",
-    price: 575000,
-    specifications: { Payload: "750 kg", Fuel: "Diesel", Application: "Last-mile delivery" },
-    files: ["3-4 1.webp", "3_4 1_1.webp", "3_4 2.webp", "3_4 3.webp", "3_4 7.webp", "3_4 8.webp", "3_4 9.webp", "3_4 front 1.webp", "Side 14.webp"],
-  },
-  {
-    name: "Tata Intra V70 Gold",
-    brand: "SCV",
-    category: "Pickup",
-    shortDescription: "Higher-payload pickup designed for rural and highway-linked goods movement.",
-    price: 940000,
-    specifications: { Payload: "1700 kg", Fuel: "Diesel", Engine: "1496 cc" },
-    files: ["SUY06233_0.png", "lcpvmw-s.webp"],
-  },
-  {
-    name: "TATA OK Certified Range",
-    brand: "TATA OK",
-    category: "Used",
-    shortDescription: "Certified pre-owned commercial vehicles backed by a structured inspection process.",
-    price: 1450000,
-    specifications: { Inspection: "150 Point", Fuel: "Diesel", Type: "Certified Used CV" },
-    files: ["tata-ok-banner.png.webp"],
-  },
-];
+    price: 1750000,
+    specs: { Fuel: "Diesel", Power: "120 HP", GVW: "12 Ton" },
+  };
+}
+
+function collectImageFiles(dirPath) {
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const absolutePath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...collectImageFiles(absolutePath));
+      continue;
+    }
+    const extension = path.extname(entry.name).toLowerCase();
+    if (allowedExtensions.has(extension)) {
+      files.push(absolutePath);
+    }
+  }
+
+  return files;
+}
 
 async function ensureBrandAndCategory(brandName, categoryName) {
   const brandSlug = makeSlug(brandName);
@@ -217,74 +134,79 @@ async function ensureBrandAndCategory(brandName, categoryName) {
   return { brand, category };
 }
 
-function copyProductImage(filename) {
-  const sourcePath = path.join(sourceDir, filename);
-  const targetPath = path.join(targetDir, filename);
-
-  if (!fs.existsSync(sourcePath)) {
-    throw new Error(`Missing source image: ${sourcePath}`);
-  }
-
-  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-
-  if (!fs.existsSync(targetPath)) {
-    fs.copyFileSync(sourcePath, targetPath);
-  }
-
-  return `/uploads/imported/products/${filename.replace(/\\/g, "/")}`;
-}
-
 async function seed() {
   await mongoose.connect(process.env.MONGODB_URI);
-  fs.mkdirSync(targetDir, { recursive: true });
+  initCloudinary();
+  if (!fs.existsSync(sourceDir)) {
+    throw new Error(`Images folder not found: ${sourceDir}`);
+  }
 
-  for (const seedItem of productSeeds) {
-    const { brand, category } = await ensureBrandAndCategory(seedItem.brand, seedItem.category);
-    const imageUrls = seedItem.files.map(copyProductImage);
-    const slug = makeSlug(seedItem.name);
+  const imageFiles = collectImageFiles(sourceDir);
+  if (!imageFiles.length) {
+    throw new Error(`No image files found in: ${sourceDir}`);
+  }
+
+  let seededCount = 0;
+  for (const filePath of imageFiles) {
+    const inferred = inferProductGroup(path.basename(filePath));
+    const productName = titleFromFilename(filePath);
+    const { brand, category } = await ensureBrandAndCategory(
+      inferred.brand,
+      inferred.category
+    );
+    const publicId = `products/imported/${makeSlug(productName)}-${seededCount + 1}`;
+    const uploadResult = await cloudinary.uploader.upload(filePath, {
+      folder: "products/imported",
+      public_id: publicId,
+      overwrite: true,
+      resource_type: "image",
+    });
+    const imageUrl = uploadResult.secure_url;
+    const slug = `${makeSlug(productName)}-${seededCount + 1}`;
 
     await Product.findOneAndUpdate(
       { slug },
       {
-        name: seedItem.name,
+        name: productName,
         slug,
         brand_id: brand._id,
         category_id: category._id,
-        short_description: seedItem.shortDescription,
-        price: seedItem.price,
-        featured_image: imageUrls[0] || null,
-        gallery_images: imageUrls,
-        specifications: seedItem.specifications,
+        short_description: `Demo product created from uploaded image: ${path.basename(filePath)}`,
+        price: inferred.price,
+        featured_image: imageUrl,
+        gallery_images: [imageUrl],
+        specifications: inferred.specs,
         is_active: true,
         is_new_launch: true,
-        is_bestseller: true,
-        is_featured: true,
+        is_bestseller: seededCount % 3 === 0,
+        is_featured: seededCount < 24,
       },
       { upsert: true, new: true }
     );
 
-    for (const imageUrl of imageUrls) {
-      const filename = path.basename(imageUrl);
-      await MediaFile.findOneAndUpdate(
-        { url: imageUrl },
-        {
-          url: imageUrl,
-          thumbnail_url: imageUrl,
-          filename,
-          original_filename: filename,
-          folder: "products-gallery",
-          mime_type: filename.endsWith(".png")
-            ? "image/png"
-            : filename.endsWith(".webp")
-              ? "image/webp"
+    const filename = path.basename(filePath);
+    await MediaFile.findOneAndUpdate(
+      { url: imageUrl },
+      {
+        url: imageUrl,
+        thumbnail_url: uploadResult.secure_url,
+        filename,
+        original_filename: filename,
+        folder: "products-gallery",
+        mime_type: filename.endsWith(".png")
+          ? "image/png"
+          : filename.endsWith(".webp")
+            ? "image/webp"
+            : filename.endsWith(".avif")
+              ? "image/avif"
               : "image/jpeg",
-        },
-        { upsert: true, new: true }
-      );
-    }
+      },
+      { upsert: true, new: true }
+    );
+    seededCount += 1;
   }
 
-  console.log(`Seeded ${productSeeds.length} products from local images.`);
+  console.log(`Seeded ${seededCount} products from local images folder.`);
   await mongoose.disconnect();
 }
 

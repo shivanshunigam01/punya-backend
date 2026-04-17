@@ -3,6 +3,7 @@ import { ok, created, fail } from "../utils/apiResponse.js";
 import { MediaFile } from "../models/MediaFile.js";
 import { parsePagination } from "../utils/pagination.js";
 import mongoose from "mongoose";
+import { deleteLocalUpload } from "../utils/localUploads.js";
 
 export const uploadSingle = asyncHandler(async (req, res) => {
   if (!req.file) return fail(res, "VALIDATION_ERROR", "file is required", null, 400);
@@ -10,7 +11,7 @@ export const uploadSingle = asyncHandler(async (req, res) => {
   const f = req.file;
   const doc = await MediaFile.create({
     url: f.path,
-    thumbnail_url: f.path, // Cloudinary can transform; keep same by default
+    thumbnail_url: f.path,
     filename: f.filename,
     original_filename: f.originalname,
     folder: req.body.folder || "general",
@@ -87,6 +88,8 @@ export const deleteMedia = asyncHandler(async (req, res) => {
   if (!item) {
     return fail(res, "NOT_FOUND", "Media not found", null, 404);
   }
+
+  deleteLocalUpload(item.url);
 
   return ok(res, { message: "Deleted" });
 });

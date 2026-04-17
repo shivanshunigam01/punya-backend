@@ -20,6 +20,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set("trust proxy", 1);
 
 /* security */
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
@@ -35,7 +36,12 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(compression());
 
 /* cors */
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
 
 app.use(morgan("dev"));
 

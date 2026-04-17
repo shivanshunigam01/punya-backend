@@ -6,8 +6,8 @@ const BannerSchema = new mongoose.Schema(
       type: String,
       enum: [
         "home",
-        "jcb",
-        "ashok_leyland",
+        "trucks",
+        "buses_vans",
         "switch_ev",
         "used_vehicles",
         "finance",

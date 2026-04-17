@@ -270,9 +270,7 @@ export const getProductById = asyncHandler(async (req, res) => {
 });
 
 // CREATE
-import cloudinary from "../config/cloudinary.js";
-import fs from "fs";
-import path from "path";
+import { moveUploadToDir } from "../utils/localUploads.js";
 
 export const createProduct = asyncHandler(async (req, res) => {
 console.log("FILES FULL:", req.files);
@@ -288,18 +286,13 @@ console.log("FILES FULL:", req.files);
   const category = await resolveCategory(value.category, brand._id);
 
   /* ===============================
-     IMAGES → CLOUDINARY
+     IMAGES → LOCAL SERVER
   ================================ */
   let imageUrls = [];
 
   if (req.files?.images) {
     for (const file of req.files.images) {
-      const result = await cloudinary.uploader.upload(file.path, {
-        folder: "products",
-      });
-
-      imageUrls.push(result.secure_url);
-      fs.unlinkSync(file.path); // cleanup temp
+      imageUrls.push(moveUploadToDir(file, "products", "images"));
     }
   }
 
@@ -310,13 +303,7 @@ console.log("FILES FULL:", req.files);
 
   if (req.files?.brochure?.[0]) {
     const file = req.files.brochure[0];
-    const targetPath = path.join(
-      "uploads/brochures",
-      path.basename(file.path)
-    );
-
-    fs.renameSync(file.path, targetPath);
-   brochureUrl = "/" + targetPath.replace(/\\/g, "/");
+    brochureUrl = moveUploadToDir(file, "products", "brochures");
   }
 
   const product = await Product.create({
@@ -410,21 +397,17 @@ export const updateProduct = asyncHandler(async (req, res) => {
     update.seo_description = value.seoDescription;
 
   if (req.files?.images?.length) {
-    update.gallery_images = req.files.images.map((f) => f.path);
-    update.featured_image = req.files.images[0]?.path || existingProduct.featured_image || null;
+    const uploadedImages = [];
+    for (const file of req.files.images) {
+      uploadedImages.push(moveUploadToDir(file, "products", "images"));
+    }
+    update.gallery_images = uploadedImages;
+    update.featured_image = uploadedImages[0] || existingProduct.featured_image || null;
   }
 
 if (req.files?.brochure?.[0]) {
   const file = req.files.brochure[0];
-
-  const targetPath = path.join(
-    "uploads/brochures",
-    path.basename(file.path)
-  );
-
-  fs.renameSync(file.path, targetPath);
-
-update.brochure_url = "/" + targetPath.replace(/\\/g, "/");
+  update.brochure_url = moveUploadToDir(file, "products", "brochures");
 }
 
   const product = await Product.findByIdAndUpdate(req.params.id, update, {
